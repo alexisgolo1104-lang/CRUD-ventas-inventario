@@ -257,30 +257,86 @@ tr:hover td{background:var(--surf2)}
       <div class="login-title">HLazcano</div>
       <div class="login-sub">Sistema de Gestión de Inventario</div>
     </div>
-    <div class="role-tabs mb-12">
-      <div class="role-tab active" id="tab-admin" onclick="setRole('admin',this)">
-        <div class="role-tab-icon">🛡️</div>
-        <div class="role-tab-label">Administrador</div>
-      </div>
-      <div class="role-tab" id="tab-emp" onclick="setRole('empleado',this)">
-        <div class="role-tab-icon">👤</div>
-        <div class="role-tab-label">Empleado</div>
-      </div>
-    </div>
     <div class="form-group mb-12">
-      <label class="form-label">Usuario</label>
-      <select class="form-control" id="login-user">
-        <option value="superadmin">Hernán Meneses — Superadmin</option>
-        <option value="admin1">Gerente Sucursal 1 — Admin</option>
-        <option value="admin2">Gerente Sucursal 2 — Admin</option>
-      </select>
+      <label class="form-label">Usuario o correo</label>
+      <input type="text" class="form-control" id="login-usuario" placeholder="Ingresa tu usuario o correo">
     </div>
-    <div class="form-group" style="margin-bottom:20px">
+    <div class="form-group mb-16">
       <label class="form-label">Contraseña</label>
-      <input type="password" class="form-control" value="12345678" placeholder="Contraseña">
+      <div style="position:relative;">
+        <input type="password" class="form-control" id="login-password" placeholder="Contraseña" style="padding-right:40px;">
+        <button type="button" onclick="togglePassword('login-password')" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--muted);">👁️‍🗨️</button>
+      </div>
     </div>
-    <button class="btn btn-primary w-full" style="justify-content:center;padding:11px 0;font-size:14px" onclick="doLogin()" style="background:#1E3A8A;border-color:#1E3A8A;font-size:14px;padding:12px 0">Ingresar al sistema</button>
+    <button class="btn btn-primary w-full mb-12" style="justify-content:center;padding:11px 0;font-size:14px" onclick="doLogin()">Ingresar al sistema</button>
+    <button class="btn btn-secondary w-full mb-8" onclick="openModal('modal-registro')">Crear cuenta nueva</button>
+    <button class="btn btn-link w-full" onclick="openModal('modal-recuperar')">¿Olvidaste tu contraseña?</button>
     <p style="text-align:center;margin-top:14px;font-size:11px;color:var(--hint)">Solo personal autorizado · HLazcano © 2025</p>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-registro" onclick="closeOut(event,'modal-registro')">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div class="modal-title">Crear cuenta nueva</div>
+      <button class="modal-close" onclick="closeModal('modal-registro')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Nombre completo</label>
+        <input type="text" class="form-control" id="registro-nombre" placeholder="Ej. Jorge Pérez">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Correo electrónico</label>
+        <input type="email" class="form-control" id="registro-correo" placeholder="ejemplo@empresa.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contraseña</label>
+        <input type="password" class="form-control" id="registro-contrasena" placeholder="Mínimo 6 caracteres">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirmar contraseña</label>
+        <input type="password" class="form-control" id="registro-confirmar" placeholder="Repite la contraseña">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Rol</label>
+        <select class="form-control" id="registro-rol">
+          <option value="empleado">Empleado</option>
+          <option value="admin">Administrador</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Sucursal</label>
+        <select class="form-control" id="registro-tienda">
+          <option value="1">Sucursal 1</option>
+          <option value="2">Sucursal 2</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-registro')">Cancelar</button>
+      <button class="btn btn-primary" onclick="doRegistro()">Crear cuenta</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-recuperar" onclick="closeOut(event,'modal-recuperar')">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title">Recuperar contraseña</div>
+      <button class="modal-close" onclick="closeModal('modal-recuperar')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Correo registrado</label>
+        <input type="email" class="form-control" id="recuperar-correo" placeholder="ejemplo@empresa.com">
+      </div>
+      <div id="recuperar-info" class="notice notice-info" style="display:none;white-space:pre-wrap;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-recuperar')">Cerrar</button>
+      <button class="btn btn-primary" onclick="doRecuperar()">Enviar recuperación</button>
+    </div>
   </div>
 </div>
 
@@ -1789,7 +1845,7 @@ tr:hover td{background:var(--surf2)}
 
 <div class="toast" id="toast"></div>
 <script>
-let currentRole='admin';
+let _sessionUser = null;
 const storeLabels=['📍 Todas las tiendas','📍 Sucursal 1 — Santa María Texmelucan','📍 Sucursal 2 — Por definir'];
 const pages={
   'dashboard':'Dashboard','inventario':'Inventario','ventas':'Ventas','compras':'Compras',
@@ -1798,98 +1854,200 @@ const pages={
   'emp-ventas':'Registrar venta','emp-inventario':'Ver inventario','cliente-perfil':'Perfil de cliente','emp-dashboard':'Mi espacio de trabajo'
 };
 
-function setRole(role,el){
-  currentRole=role;
-  document.querySelectorAll('.role-tab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
-  const u=document.getElementById('login-user');
-  if(role==='admin'){
-    u.innerHTML='<option value="superadmin">Hernán Meneses — Superadmin</option><option value="admin1">Gerente Sucursal 1 — Admin</option><option value="admin2">Gerente Sucursal 2 — Admin</option>';
-  } else {
-    u.innerHTML='<option value="emp1">Ana Ramírez — Empleado S1</option><option value="emp2">Carlos Mendoza — Empleado S2</option>';
-  }
-}
-
 async function doLogin(){
-  const correoMap={
-    'superadmin':'superadmin@hlazcano.com',
-    'admin1':'admin1@hlazcano.com',
-    'admin2':'admin2@hlazcano.com',
-    'emp1':'emp1@hlazcano.com',
-    'emp2':'emp2@hlazcano.com',
-  };
-  const uv=document.getElementById('login-user').value;
-  const correo=correoMap[uv]||'superadmin@hlazcano.com';
-  const fd=new FormData();
-  fd.append('correo', correo);
+  const usuario = document.getElementById('login-usuario').value.trim();
+  const contrasena = document.getElementById('login-password').value;
+  if (!usuario || !contrasena) {
+    showToast('Completa usuario y contraseña.');
+    return;
+  }
+
+  const fd = new FormData();
+  fd.append('usuario', usuario);
+  fd.append('contrasena', contrasena);
 
   let loginData;
   try {
-    const resp = await fetch('index.php?action=sesion_establecer', {
-      method:'POST',
-      credentials:'same-origin',
+    const resp = await fetch('index.php?action=login', {
+      method: 'POST',
+      credentials: 'same-origin',
       body: fd,
       headers: {
-        'Accept': 'application/json'
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json',
       }
     });
     loginData = await resp.json();
   } catch (err) {
     console.error('Login error:', err);
-    if (typeof showToast === 'function') {
-      showToast('❌ No se pudo iniciar sesión. Revisa tu conexión.');
-    } else {
-      alert('No se pudo iniciar sesión. Revisa tu conexión.');
-    }
-    return;
-  }
-  if (!loginData?.ok) {
-    if (typeof showToast === 'function') {
-      showToast('❌ Error al iniciar sesión.');
-    } else {
-      alert('Error al iniciar sesión.');
-    }
+    showToast('❌ No se pudo iniciar sesión. Revisa tu conexión.');
     return;
   }
 
+  if (!loginData?.ok) {
+    showToast('❌ ' + (loginData.msg || 'Credenciales incorrectas.'));
+    return;
+  }
+
+  loginSuccess(loginData);
+}
+
+function loginSuccess(data){
+  _sessionUser = data;
   document.getElementById('login-page').style.display='none';
   document.getElementById('app').style.display='flex';
-  const isAdmin=currentRole==='admin';
-  document.getElementById('admin-nav').style.display=isAdmin?'block':'none';
-  document.getElementById('emp-nav').style.display=isAdmin?'none':'block';
-  document.getElementById('store-switcher-wrap').style.display=isAdmin?'block':'none';
-  document.getElementById('emp-badge-top').style.display=isAdmin?'none':'inline';
-  let name='Hernán M.',av='HM',role='Superadmin';
-  if(uv==='admin1'){name='Gerente S1';av='G1';role='Admin'}
-  else if(uv==='admin2'){name='Gerente S2';av='G2';role='Admin'}
-  else if(uv==='emp1'){name='Ana Ramírez';av='AR';role='Empleado · S1'}
-  else if(uv==='emp2'){name='Carlos M.';av='CM';role='Empleado · S2'}
-  document.getElementById('sb-av').textContent=av;
-  document.getElementById('sb-name').textContent=name;
-  document.getElementById('sb-role').textContent=role;
-  document.getElementById('tu-av').textContent=av;
-  document.getElementById('tu-name').textContent=name;
-  document.getElementById('sb-version').textContent=isAdmin?'Inventario v3.0':'Inventario v3.0';
-  if(isAdmin){
+  const isAdmin = data.rol === 'superadmin' || data.rol === 'admin';
+  document.getElementById('admin-nav').style.display = isAdmin ? 'block' : 'none';
+  document.getElementById('emp-nav').style.display = isAdmin ? 'none' : 'block';
+  document.getElementById('store-switcher-wrap').style.display = isAdmin ? 'block' : 'none';
+  document.getElementById('emp-badge-top').style.display = isAdmin ? 'none' : 'inline';
+  const name = data.nombre || data.correo || 'Usuario';
+  const av = name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
+  const roleLabel = data.rol === 'superadmin' ? 'Superadmin' : data.rol === 'admin' ? 'Admin' : 'Empleado';
+  document.getElementById('sb-av').textContent = av;
+  document.getElementById('sb-name').textContent = name;
+  document.getElementById('sb-role').textContent = roleLabel;
+  document.getElementById('tu-av').textContent = av;
+  document.getElementById('tu-name').textContent = name;
+  document.getElementById('sb-version').textContent = 'Inventario v3.0';
+  if (isAdmin) {
     clearScreens();
     document.getElementById('screen-dashboard').classList.add('active');
-    document.getElementById('page-title').textContent='Dashboard';
+    document.getElementById('page-title').textContent = 'Dashboard';
   } else {
     clearScreens();
     document.getElementById('screen-emp-dashboard').classList.add('active');
-    document.getElementById('page-title').textContent='Mi espacio de trabajo';
+    document.getElementById('page-title').textContent = 'Mi espacio de trabajo';
   }
-  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
-  document.querySelector('#'+(isAdmin?'admin':'emp')+'-nav .sb-item:not(.locked)').classList.add('active');
-  const contentArea=document.querySelector('.content');
-  if(contentArea) contentArea.scrollTop=0;
+  document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
+  const firstNav = document.querySelector('#' + (isAdmin ? 'admin' : 'emp') + '-nav .sb-item:not(.locked)');
+  if (firstNav) firstNav.classList.add('active');
+  const contentArea = document.querySelector('.content');
+  if (contentArea) contentArea.scrollTop = 0;
   window.scrollTo(0,0);
 }
 
+async function doRegistro(){
+  const nombre = document.getElementById('registro-nombre').value.trim();
+  const correo = document.getElementById('registro-correo').value.trim();
+  const contrasena = document.getElementById('registro-contrasena').value;
+  const confirmar = document.getElementById('registro-confirmar').value;
+  const rol = document.getElementById('registro-rol').value;
+  const tienda = document.getElementById('registro-tienda').value;
+
+  if (!nombre || !correo || !contrasena || !confirmar) {
+    showToast('Completa todos los campos de registro.');
+    return;
+  }
+  if (contrasena !== confirmar) {
+    showToast('Las contraseñas no coinciden.');
+    return;
+  }
+  if (contrasena.length < 6) {
+    showToast('La contraseña debe tener al menos 6 caracteres.');
+    return;
+  }
+
+  const fd = new FormData();
+  fd.append('nombre', nombre);
+  fd.append('correo', correo);
+  fd.append('contrasena', contrasena);
+  fd.append('confirmar', confirmar);
+  fd.append('rol', rol);
+  fd.append('id_tienda', tienda);
+
+  try {
+    const resp = await fetch('index.php?action=registro', {
+      method: 'POST',
+      credentials: 'same-origin',
+      body: fd,
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json',
+      }
+    });
+    const data = await resp.json();
+    if (!data.ok) {
+      showToast('❌ ' + data.msg);
+      return;
+    }
+    showToast('✅ ' + data.msg);
+    // Limpiar campos del formulario
+    document.getElementById('registro-nombre').value = '';
+    document.getElementById('registro-correo').value = '';
+    document.getElementById('registro-contrasena').value = '';
+    document.getElementById('registro-confirmar').value = '';
+    document.getElementById('registro-rol').value = 'empleado';
+    document.getElementById('registro-tienda').value = '1';
+    closeModal('modal-registro');
+  } catch (err) {
+    console.error('Registro error:', err);
+    showToast('❌ No se pudo completar el registro.');
+  }
+}
+
+async function doRecuperar(){
+  const correo = document.getElementById('recuperar-correo').value.trim();
+  const info = document.getElementById('recuperar-info');
+  info.style.display = 'none';
+  info.textContent = '';
+
+  if (!correo) {
+    showToast('Ingresa tu correo para recuperar contraseña.');
+    return;
+  }
+
+  const fd = new FormData();
+  fd.append('correo', correo);
+
+  try {
+    const resp = await fetch('index.php?action=recuperar_password', {
+      method: 'POST',
+      credentials: 'same-origin',
+      body: fd,
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json',
+      }
+    });
+
+    const text = await resp.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (parseErr) {
+      console.error('Recuperar contraseña parse error:', parseErr, 'response text:', text);
+      showToast('❌ Error de servidor. Revisa la consola.');
+      return;
+    }
+
+    if (!resp.ok) {
+      showToast('❌ ' + (data.msg || 'Error HTTP ' + resp.status));
+      return;
+    }
+    if (!data.ok) {
+      showToast('❌ ' + data.msg);
+      return;
+    }
+    showToast('✅ ' + data.msg);
+    info.textContent = 'Tu contraseña temporal es: ' + data.tempPassword;
+    info.style.display = 'block';
+  } catch (err) {
+    console.error('Recuperar contraseña error:', err);
+    showToast('❌ No se pudo procesar la recuperación.');
+  }
+}
+
+
 function doLogout(){
+  fetch('index.php?action=logout', {
+    method: 'POST',
+    credentials: 'same-origin'
+  }).catch(() => {});
   document.getElementById('app').style.display='none';
   document.getElementById('login-page').style.display='flex';
-  document.getElementById('login-user').value='superadmin';
+  document.getElementById('login-usuario').value='';
+  document.getElementById('login-password').value='';
 }
 
 function clearScreens(){
@@ -2246,6 +2404,13 @@ function confirmarVenta(screenId){
   renderCart(screenId);
   openModal('modal-venta-ok');
   document.getElementById('venta-ok-total').textContent='$'+total.toLocaleString('es-MX',{minimumFractionDigits:2});
+}
+
+// ── Password toggle ─────────────────────────────────────
+function togglePassword(inputId){
+  const input = document.getElementById(inputId);
+  const type = input.type === 'password' ? 'text' : 'password';
+  input.type = type;
 }
 
 // ── Toast ─────────────────────────────────────────────────

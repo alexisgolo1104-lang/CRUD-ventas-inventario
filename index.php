@@ -70,6 +70,14 @@ switch ($action) {
         (new AuthController())->login();
         break;
 
+    case 'registro':
+        (new AuthController())->registro();
+        break;
+
+    case 'recuperar_password':
+        (new AuthController())->recuperarPassword();
+        break;
+
     case 'logout':
         (new AuthController())->logout();
         break;
@@ -139,6 +147,10 @@ switch ($action) {
 
     case 'venta_registrar':
         (new VentasController())->registrar();
+        break;
+
+    case 'venta_cancelar':
+        (new VentasController())->cancelar();
         break;
 
     case 'venta_detalle':

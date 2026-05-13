@@ -41,8 +41,14 @@ class Venta {
         return $stmt->fetchAll();
     }
 
-    /**
-     * Registra una venta completa con sus ítems y descuenta stock.
+    /**     * Marca una venta como cancelada/devolución y guarda el motivo en notas.
+     */
+    public function cancelar(int $id_venta, string $notas): bool {
+        $stmt = $this->db->prepare("UPDATE ventas SET notas = ? WHERE id_venta = ?");
+        return $stmt->execute([$notas, $id_venta]);
+    }
+
+    /**     * Registra una venta completa con sus ítems y descuenta stock.
      * $venta = [id_usuario, id_cliente, id_tienda, descuento, notas]
      * $items = [['id_producto', 'cantidad', 'precio_unit'], ...]
      */

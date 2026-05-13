@@ -60,10 +60,70 @@ class VentasController {
         exit;
     }
 
+    public function cancelar(): void {
+        AuthController::requerirRol(ROL_SUPERADMIN, ROL_ADMIN, ROL_EMPLEADO);
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
+
+        $id_venta = (int)($_POST['id_venta'] ?? 0);
+        $motivo   = trim($_POST['motivo'] ?? '');
+        $tipo     = trim(strtolower($_POST['tipo'] ?? 'cancelacion'));
+
+        if ($id_venta <= 0 || $motivo === '') {
+            $this->responder(false, 'ID de venta o motivo inválido.', 'ventas');
+            return;
+        }
+
+        $venta = $this->ventaModel->getById($id_venta);
+        if (!$venta) {
+            $this->responder(false, 'Venta no encontrada.', 'ventas');
+            return;
+        }
+
+        $ventaProcesada = $this->parseVentaEstado($venta);
+        if ($ventaProcesada['estado'] !== 'completada') {
+            $this->responder(false, 'La venta ya fue ' . ($ventaProcesada['estado'] === 'devolucion' ? 'devolución' : 'cancelada') . '.', 'ventas');
+            return;
+        }
+
+        $items = $this->ventaModel->getDetalle($id_venta);
+        if (empty($items)) {
+            $this->responder(false, 'No se encontraron productos en la venta.', 'ventas');
+            return;
+        }
+
+        $prefijo = $tipo === 'devolucion' ? 'DEVOLUCION' : 'CANCELADA';
+        $notas   = $prefijo . ': ' . $motivo;
+        if (!empty($venta['notas'])) {
+            $notas .= ' — Nota original: ' . $venta['notas'];
+        }
+
+        $okStock = true;
+        foreach ($items as $item) {
+            if (!$this->productoModel->ajustarStock((int)$item['id_producto'], (float)$item['cantidad'])) {
+                $okStock = false;
+            }
+        }
+
+        if (!$okStock) {
+            $this->responder(false, 'Error al restaurar el stock de uno o varios productos.', 'ventas');
+            return;
+        }
+
+        $ok = $this->ventaModel->cancelar($id_venta, $notas);
+        $msg = $ok ? 'Venta marcada como ' . ($prefijo === 'DEVOLUCION' ? 'devolución.' : 'cancelada.') : 'Error al cancelar la venta.';
+
+        if ($this->esAjax()) {
+            header('Content-Type: application/json');
+            echo json_encode(['ok' => $ok, 'msg' => $msg]);
+            exit;
+        }
+        $this->responder($ok, $msg, 'ventas');
+    }
+
     public function detalle(int $id_venta): array {
         AuthController::requerirLogin();
         return [
-            'venta'  => $this->ventaModel->getById($id_venta),
+            'venta'  => $this->parseVentaEstado($this->ventaModel->getById($id_venta)),
             'items'  => $this->ventaModel->getDetalle($id_venta),
         ];
     }
@@ -75,6 +135,24 @@ class VentasController {
             'productos' => $this->productoModel->getAll($id_tienda),
             'clientes'  => $this->clienteModel->getAll($id_tienda),
         ];
+    }
+
+    private function parseVentaEstado(array $venta): array {
+        $notas = trim((string)($venta['notas'] ?? ''));
+        $estado = 'completada';
+        $motivo = null;
+        $notasLimpias = $notas;
+
+        if (preg_match('/^(CANCELADA|DEVOLUCION):\s*([^—]+)(?:—\s*Nota original:\s*(.*))?$/i', $notas, $matches)) {
+            $estado = strtolower($matches[1]);
+            $motivo = trim($matches[2]);
+            $notasLimpias = isset($matches[3]) ? trim($matches[3]) : '';
+        }
+
+        $venta['estado'] = $estado;
+        $venta['motivo_cancelacion'] = $motivo;
+        $venta['notas'] = $notasLimpias;
+        return $venta;
     }
 
     /** Endpoint JSON: lista de ventas */

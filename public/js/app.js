@@ -1,11 +1,57 @@
-let currentRole='admin';
-const storeLabels=['📍 Todas las tiendas','📍 Sucursal 1 — Santa María Texmelucan','📍 Sucursal 2 — Por definir'];
-const pages={
-  'dashboard':'Dashboard','inventario':'Inventario','ventas':'Ventas','compras':'Compras',
-  'clientes':'Clientes','alertas':'Alertas','localizador':'Localizador','reportes':'Reportes',
-  'usuarios':'Usuarios','catalogos':'Catálogos',
-  'productos':'Productos','emp-ventas':'Registrar venta','emp-inventario':'Ver inventario','cliente-perfil':'Perfil de cliente','emp-dashboard':'Mi espacio de trabajo'
-};
+function forceScrollToTop() {
+  const contentArea = document.querySelector('.content');
+  if(contentArea) {
+    contentArea.style.scrollBehavior = 'auto';
+    contentArea.scrollTop = 0;
+    setTimeout(() => {
+      contentArea.style.scrollBehavior = 'smooth';
+    }, 100);
+  }
+  window.scrollTo(0, 0);
+}
+
+function preventAutoScroll() {
+  // Prevenir cualquier scroll automático durante los próximos segundos
+  const preventScroll = (e) => {
+    e.preventDefault();
+    forceScrollToTop();
+    return false;
+  };
+  
+  const contentArea = document.querySelector('.content');
+  if(contentArea) {
+    contentArea.addEventListener('scroll', preventScroll, { passive: false });
+    window.addEventListener('scroll', preventScroll, { passive: false });
+    
+    setTimeout(() => {
+      contentArea.removeEventListener('scroll', preventScroll);
+      window.removeEventListener('scroll', preventScroll);
+    }, 2000);
+  }
+  
+  // Ejecutar múltiples veces con delays
+  forceScrollToTop();
+  forceScrollToTop();
+  
+  requestAnimationFrame(() => {
+    forceScrollToTop();
+    setTimeout(forceScrollToTop, 10);
+    setTimeout(forceScrollToTop, 50);
+    setTimeout(forceScrollToTop, 100);
+    setTimeout(forceScrollToTop, 200);
+    setTimeout(forceScrollToTop, 500);
+    setTimeout(forceScrollToTop, 1000);
+  });
+  
+  // Prevenir foco automático
+  setTimeout(() => {
+    document.activeElement.blur();
+    document.body.focus();
+    document.body.setAttribute('tabindex', '-1');
+    document.body.focus();
+    document.body.removeAttribute('tabindex');
+  }, 1);
+}
 
 function setRole(role,el){
   currentRole=role;
@@ -83,9 +129,9 @@ async function doLogin(){
   }
   document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
   document.querySelector('#'+(isAdmin?'admin':'emp')+'-nav .sb-item:not(.locked)').classList.add('active');
-  const contentArea=document.querySelector('.content');
-  if(contentArea) contentArea.scrollTop=0;
-  window.scrollTo(0,0);
+  
+  // Prevenir cualquier scroll automático
+  preventAutoScroll();
 
   // ── Cargar datos iniciales de la pantalla activa ──
   setTimeout(() => {
@@ -126,10 +172,10 @@ function go(name,navEl){
   }
   document.querySelectorAll('.sb-item:not(.locked)').forEach(i=>i.classList.remove('active'));
   if(navEl) navEl.classList.add('active');
-  // Scroll content area to top always
-  const contentArea=document.querySelector('.content');
-  if(contentArea) contentArea.scrollTop=0;
-  window.scrollTo(0,0);
+  
+  // Prevenir cualquier scroll automático
+  preventAutoScroll();
+  
   document.getElementById('page-title').textContent=pages[name]||name;
 
   // ── Cargar datos dinámicos según pantalla ──
@@ -602,9 +648,9 @@ async function registrarVentaFinal(){
     }
     showToast('✅ Venta #'+folio+' registrada');
     document.getElementById('page-title').textContent='Confirmar venta';
-    const contentArea=document.querySelector('.content');
-    if(contentArea) contentArea.scrollTop=0;
-    window.scrollTo(0,0);
+    
+    // Prevenir cualquier scroll automático
+    preventAutoScroll();
   } catch(e){
     showToast('❌ Error de conexión','warn');
   }

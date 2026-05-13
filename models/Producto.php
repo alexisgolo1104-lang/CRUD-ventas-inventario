@@ -160,6 +160,12 @@ class Producto {
         return $stmt->execute($values);
     }
 
+    /** Ajusta el stock actual en una cantidad positiva o negativa */
+    public function ajustarStock(int $id_producto, float $cantidad): bool {
+        $stmt = $this->db->prepare("UPDATE productos SET stock_actual = stock_actual + ? WHERE id_producto = ?");
+        return $stmt->execute([$cantidad, $id_producto]);
+    }
+
     /** Desactiva un producto (borrado lógico) */
     public function desactivar(int $id): bool {
         $stmt = $this->db->prepare("UPDATE productos SET activo=0, actualizado_en=CURDATE() WHERE id_producto=?");

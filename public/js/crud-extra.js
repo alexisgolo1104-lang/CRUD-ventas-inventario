@@ -326,6 +326,7 @@ function limpiarFiltrosVentas() {
 }
 
 // ── Ver detalle de venta (fetch real) ────────────────────
+
 async function verDetalleVenta(id) {
   const titulo = document.getElementById('modal-detalle-titulo');
   const body   = document.getElementById('modal-detalle-body');
@@ -350,6 +351,9 @@ async function verDetalleVenta(id) {
       <div class="notice notice-info" style="margin-bottom:12px">
         <div><strong>Folio:</strong> ${v.folio}</div>
         <div><strong>Fecha:</strong> ${v.fecha}</div>
+        <div><strong>Cliente:</strong> ${v.cliente || 'Venta directa'}</div>
+        <div><strong>Estado:</strong> <span class="badge ${v.estado === 'completada' ? 'badge-ok' : 'badge-danger'}">${v.estado === 'completada' ? '✅ OK' : (v.estado === 'cancelada' ? '❌ CANCELADA' : '↩️ DEVOLUCIÓN')}</span></div>
+        ${v.motivo_cancelacion ? `<div><strong>Motivo:</strong> ${v.motivo_cancelacion}</div>` : ''}
         <div><strong>Descuento:</strong> ${v.descuento || 0}%</div>
       </div>
       <div class="table-wrap">
@@ -376,17 +380,15 @@ let _cancelarVentaId = null;
 
 function cancelarVenta(id) {
   _cancelarVentaId = id;
-  const folioEl = document.getElementById('cancelar-venta-folio');
-  if (folioEl) folioEl.textContent = '#' + String(id).padStart(4,'0');
   openModal('modal-cancelar-venta');
 }
 
 function ejecutarCancelarVenta() {
   const motivo = document.getElementById('cancelar-motivo')?.value;
   if (!motivo) { showToast('⚠️ Selecciona un motivo'); return; }
+
   closeModal('modal-cancelar-venta');
   showToast(`✅ Venta #${String(_cancelarVentaId).padStart(4,'0')} marcada para cancelar`);
-  // Nota: implementar endpoint de cancelación según reglas de negocio
 }
 
 // ── CRUD Clientes ────────────────────────────────────────
