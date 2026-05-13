@@ -186,20 +186,27 @@ function setVal(id, val) {
 
 // ── Guardar producto (crear o actualizar) ─────────────────
 async function guardarProducto() {
-  const id = document.getElementById('prod-id')?.value;
-  if (!id || id == '' || id == '0') {
-    showToast('❌ Error: ID de producto no válido. Intenta editar de nuevo.');
-    return;
-  }
+  const id = document.getElementById('prod-id')?.value || '';
   const id_catalogo = document.getElementById('prod-catalogo')?.value;
-  
+  const isEdit = Boolean(id && id !== '0');
+  console.log('guardarProducto iniciar', { id, isEdit, id_catalogo });
+
   if (!id_catalogo) {
     showToast('❌ Selecciona un producto del catálogo');
     return;
   }
 
+  // Validar que precio de venta sea mayor o igual al precio de compra
+  const precioCompra = parseFloat(document.getElementById('prod-p-compra')?.value) || 0;
+  const precioVenta = parseFloat(document.getElementById('prod-p-venta')?.value) || 0;
+  
+  if (precioVenta < precioCompra) {
+    showToast('❌ El precio de venta debe ser mayor o igual al precio de compra', 'warn');
+    return;
+  }
+
   const fd = new FormData();
-  fd.append('id_producto',      id || '');
+  fd.append('id_producto',      id);
   fd.append('id_catalogo',      id_catalogo || '');
   fd.append('id_tipo',          document.getElementById('prod-id-tipo')?.value       || '');
   fd.append('id_color',         document.getElementById('prod-id-color')?.value      || '');
@@ -211,10 +218,10 @@ async function guardarProducto() {
   fd.append('id_tienda',        document.getElementById('prod-sucursal')?.value     || '');
   fd.append('stock_actual',     document.getElementById('prod-stock')?.value         || '0');
   fd.append('stock_minimo',     document.getElementById('prod-stock-min')?.value     || '0');
-  fd.append('precio_compra',    document.getElementById('prod-p-compra')?.value      || '0');
-  fd.append('precio_venta',     document.getElementById('prod-p-venta')?.value       || '0');
+  fd.append('precio_compra',    precioCompra);
+  fd.append('precio_venta',     precioVenta);
 
-  const action = id ? 'producto_actualizar' : 'producto_crear';
+  const action = isEdit ? 'producto_actualizar' : 'producto_crear';
   try {
     const res = await apiPost(action, fd);
     console.log('Respuesta del servidor:', res);
@@ -593,12 +600,14 @@ async function cargarDatosVentas() {
             const unidad = p.unidad_codigo||'u';
             const stock  = parseFloat(p.stock_actual).toFixed(2);
             const precio = parseFloat(p.precio_venta||0).toFixed(2);
+            const tipo = p.tipo_hilo||'';
             return `<option value="${p.id_producto}"
               data-id="${p.id_producto}"
               data-name="${esc(nombre)}"
               data-price="${parseFloat(p.precio_venta||0)}"
               data-stock="${parseFloat(p.stock_actual)}"
               data-unidad="${esc(unidad)}"
+              data-tipo="${esc(tipo)}"
               >${esc(nombre)} — Stock: ${stock} ${unidad}${bajo?' ⚠':''} — $${precio}/${unidad}</option>`;
           }).join('');
       }
@@ -688,7 +697,8 @@ async function cargarInventario(forzar = false) {
     tbody.innerHTML = data.map(p => {
       const bajo = parseFloat(p.stock_actual) <= parseFloat(p.stock_minimo);
       const badge = bajo ? 'badge-danger' : (parseFloat(p.stock_actual) <= parseFloat(p.stock_minimo)*1.5 ? 'badge-warn' : 'badge-ok');
-      return `<tr data-tipo="${esc(p.tipo_hilo||'')}" data-stock="${bajo?'bajo':'ok'}" data-id="${p.id_producto}">
+      const stockStatus = bajo ? 'bajo' : 'normal';
+      return `<tr data-tipo="${esc(p.tipo_hilo||'')}" data-color="${esc(p.color||'')}" data-stock="${stockStatus}" data-tienda="${p.id_tienda}" data-id="${p.id_producto}">
         <td><strong>${esc(p.nombre)}</strong></td>
         <td>${esc(p.tipo_hilo||'—')}</td>
         <td>${esc(p.color||'—')}</td>

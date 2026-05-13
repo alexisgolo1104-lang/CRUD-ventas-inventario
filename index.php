@@ -74,6 +74,14 @@ switch ($action) {
         (new AuthController())->logout();
         break;
 
+    // ── Respaldo ──────────────────────────────────────────
+    case 'respaldo_historial':
+        header('Content-Type: application/json');
+        require_once 'models/LogRespaldo.php';
+        $logModel = new LogRespaldo();
+        echo json_encode(['ok' => true, 'historial' => $logModel->getHistorial(), 'ultimo' => $logModel->getUltimoRespaldo()]);
+        exit;
+
     // ── Inventario / Productos ────────────────────────────
     case 'inventario_listar':
         header('Content-Type: application/json');

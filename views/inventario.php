@@ -2,7 +2,7 @@
   <div class="flex justify-between items-center mb-12">
     <div class="text-muted text-sm" id="inv-contador">Cargando inventario...</div>
     <div class="flex gap-8">
-      <button class="btn btn-primary" onclick="openModal('modal-producto')">+ Nuevo producto</button>
+      <button class="btn btn-primary" onclick="nuevoProducto()">+ Nuevo producto</button>
       <button class="btn" onclick="exportarTabla('tbl-inventario')">⬇ Exportar</button>
     </div>
   </div>

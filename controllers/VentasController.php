@@ -40,16 +40,22 @@ class VentasController {
             'notas'      => $_POST['notas'] ?? null,
         ];
 
-        $result = $this->ventaModel->registrar($venta, $items);
-        $ok     = $result !== false;
+        try {
+            $result = $this->ventaModel->registrar($venta, $items);
+            $ok     = $result !== false;
+            $msg    = $ok ? 'Venta registrada.' : 'Error al registrar venta.';
+        } catch (\Exception $e) {
+            $ok     = false;
+            $msg    = 'Error: ' . $e->getMessage();
+        }
 
         if ($this->esAjax()) {
             header('Content-Type: application/json');
-            echo json_encode(['ok' => $ok, 'id_venta' => $result, 'msg' => $ok ? 'Venta registrada.' : 'Error al registrar venta.']);
+            echo json_encode(['ok' => $ok, 'id_venta' => $result ?: null, 'msg' => $msg]);
             exit;
         }
-        $_SESSION['msg']          = $ok ? '✅ Venta registrada.' : '❌ Error al registrar venta.';
-        $_SESSION['ultima_venta'] = $result;
+        $_SESSION['msg']          = $ok ? '✅ ' . $msg : '❌ ' . $msg;
+        $_SESSION['ultima_venta'] = $result ?: null;
         header('Location: ../index.php?page=venta-confirmada');
         exit;
     }

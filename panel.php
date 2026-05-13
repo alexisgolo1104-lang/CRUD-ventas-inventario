@@ -319,6 +319,7 @@ tr:hover td{background:var(--surf2)}
       <div class="sb-section">Configuración</div>
       <div class="sb-item" onclick="go('usuarios',this)"><span class="icon">👤</span>Usuarios</div>
       <div class="sb-item" onclick="go('catalogos',this)"><span class="icon">📋</span>Catálogos</div>
+      <div class="sb-item" onclick="go('respaldo',this)"><span class="icon">💾</span>Respaldo</div>
     </nav>
     <nav id="emp-nav" style="display:none">
       <div class="sb-section">Mi trabajo</div>
@@ -515,10 +516,24 @@ tr:hover td{background:var(--surf2)}
       </div>
       <div class="form-group mb-12">
         <label class="form-label">Agregar producto del catálogo</label>
+        <div class="form-group mb-8" style="margin-bottom:8px">
+          <label class="form-label">Filtrar por material</label>
+          <select class="form-control" id="filtro-material-ventas" onchange="filtrarMaterialesVentas()">
+            <option value="">Todos los materiales</option>
+            <option value="Acrílico">Acrílico</option>
+            <option value="Algodón">Algodón</option>
+            <option value="Nylon">Nylon</option>
+            <option value="Poliéster">Poliéster</option>
+            <option value="Lana">Lana</option>
+            <option value="Mercerizado">Mercerizado</option>
+            <option value="Elastano">Elastano</option>
+            <option value="Bambú">Bambú</option>
+            <option value="Seda">Seda</option>
+          </select>
+        </div>
         <div class="flex gap-8">
           <select class="form-control" id="prod-sel-ventas" style="flex:2">
             <option value="">Seleccionar producto...</option>
-          </select>
           </select>
           <input class="form-control" id="cant-inp-ventas" style="width:80px" type="number" value="1" min="0.1" step="0.1">
           <button class="btn btn-primary" onclick="addToCart('ventas');updateTicketPreview()">+ Agregar</button>
@@ -531,8 +546,12 @@ tr:hover td{background:var(--surf2)}
         </table>
       </div>
       <div class="cart-total-box">
-        <div class="cart-total-row"><span class="cart-total-label">Subtotal</span><span class="cart-total-val" id="cart-total-ventas">$0.00</span></div>
-        <div class="cart-total-row"><span class="cart-total-label font-bold" style="font-size:15px">Total</span><span class="cart-total-val cart-total-main" id="cart-total-ventas2">$0.00</span></div>
+        <div class="cart-total-row"><span class="cart-total-label">Subtotal</span><span class="cart-total-val" id="cart-subtotal-ventas">$0.00</span></div>
+        <div class="cart-total-row">
+          <span class="cart-total-label">Descuento (%)</span>
+          <input class="form-control" id="cart-descuento-ventas" type="number" style="width:80px;padding:4px 8px;font-size:12px" min="0" max="100" value="0" onchange="actualizarTotalConDescuento('ventas')" oninput="actualizarTotalConDescuento('ventas')">
+        </div>
+        <div class="cart-total-row"><span class="cart-total-label font-bold" style="font-size:15px">Total</span><span class="cart-total-val cart-total-main" id="cart-total-ventas">$0.00</span></div>
       </div>
       <button class="btn btn-primary w-full" style="justify-content:center;padding:11px;margin-top:8px" onclick="registrarVentaFinal()">✓ Registrar venta y ver ticket</button>
     </div>
@@ -616,6 +635,24 @@ tr:hover td{background:var(--surf2)}
           <tr><td>28/02</td><td>Textiles Norte</td><td>$1,500.00</td><td>S2</td></tr>
         </tbody></table>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: Detalle de venta ═══════════════════════════════ -->
+<div class="modal-overlay" id="modal-detalle-venta" onclick="closeOut(event,'modal-detalle-venta')">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-detalle-titulo">Detalle de venta</div>
+      <button class="modal-close" onclick="closeModal('modal-detalle-venta')">✕</button>
+    </div>
+    <div class="modal-body" id="modal-detalle-body">
+      <div style="text-align:center;color:var(--hint);padding:32px">Cargando...</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-detalle-venta')">Cerrar</button>
+      <button class="btn" onclick="showToast('Ticket listo para imprimir')">🖨 Imprimir</button>
+      <button class="btn" onclick="showToast('Enviando por WhatsApp...')">📤 WhatsApp</button>
     </div>
   </div>
 </div>
@@ -1247,6 +1284,39 @@ tr:hover td{background:var(--surf2)}
   </div>
 </div>
 
+<!-- ══ RESPALDO ════════════════════════════════════════════ --><div id="screen-respaldo" class="screen">
+  <div class="notice notice-info mb-16">💾 <strong>Respaldo de base de datos</strong> · Crea una copia de seguridad completa de todos los datos del sistema</div>
+  
+  <div class="card">
+    <div class="card-title">Generar respaldo</div>
+    <div class="mb-16">
+      <p class="text-muted mb-12">El respaldo incluye todas las tablas de la base de datos: productos, ventas, clientes, usuarios, catálogos, etc. El archivo se descargará automáticamente en formato SQL.</p>
+      <div class="flex gap-12 items-center">
+        <button class="btn btn-primary" onclick="generarRespaldo()" id="btn-respaldo">
+          <span id="btn-text">💾 Generar respaldo</span>
+          <span id="btn-loading" style="display:none">⏳ Generando...</span>
+        </button>
+        <div class="text-sm text-muted">
+          <div id="ultimo-respaldo-info">Último respaldo: <strong>Cargando...</strong></div>
+          <div>Tamaño aproximado: <strong>~2MB</strong></div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="divider"></div>
+    
+    <div class="section-title">Historial de respaldos</div>
+    <div class="table-wrap" id="historial-respaldo">
+      <table>
+        <thead><tr><th>Fecha</th><th>Usuario</th><th>Archivo</th><th>Tamaño</th><th>Estado</th></tr></thead>
+        <tbody id="tbody-historial">
+          <tr><td colspan="5" style="text-align:center;color:var(--hint);padding:20px">Cargando historial...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <!-- ══ EMPLEADO: VENTAS ═══════════════════════════════════ --><div id="screen-emp-ventas" class="screen">
   <div class="notice notice-info mb-16">🏪 <strong>Sucursal 1 — Santa María Texmelucan</strong> · Solo puedes registrar ventas en tu tienda asignada</div>
   <div class="grid-2">
@@ -1724,7 +1794,7 @@ const storeLabels=['📍 Todas las tiendas','📍 Sucursal 1 — Santa María Te
 const pages={
   'dashboard':'Dashboard','inventario':'Inventario','ventas':'Ventas','compras':'Compras',
   'clientes':'Clientes','alertas':'Alertas','localizador':'Localizador','reportes':'Reportes',
-  'usuarios':'Usuarios','catalogos':'Catálogos',
+  'usuarios':'Usuarios','catalogos':'Catálogos','respaldo':'Respaldo',
   'emp-ventas':'Registrar venta','emp-inventario':'Ver inventario','cliente-perfil':'Perfil de cliente','emp-dashboard':'Mi espacio de trabajo'
 };
 
@@ -1844,6 +1914,7 @@ function go(name,navEl){
   if(name==='clientes')     cargarClientes();
   if(name==='ventas')       cargarDatosVentas();
   if(name==='inventario')   cargarInventario();
+  if(name==='respaldo')     cargarHistorialRespaldo();
 }
 
 function switchStore(){
@@ -2120,27 +2191,57 @@ function removeFromCart(id,screenId){
 
 function renderCart(screenId){
   const tbody=document.getElementById('cart-body-'+screenId);
+  const subtotalEl=document.getElementById('cart-subtotal-'+screenId);
+  const descuentoEl=document.getElementById('cart-descuento-'+screenId);
   const totalEl=document.getElementById('cart-total-'+screenId);
   if(!tbody) return;
   if(cart.length===0){
     tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--hint);padding:20px">Sin productos agregados</td></tr>';
+    if(subtotalEl) subtotalEl.textContent='$0.00';
     if(totalEl) totalEl.textContent='$0.00';
     return;
   }
-  let total=0;
+  let subtotal=0;
   tbody.innerHTML=cart.map(item=>{
     const sub=item.price*item.cant;
-    total+=sub;
+    subtotal+=sub;
     return `<tr><td>${item.name}</td><td>${item.cant} kg</td><td>$${item.price.toFixed(2)}</td>
       <td><strong>$${sub.toFixed(2)}</strong></td>
       <td><button class="btn btn-xs btn-danger" onclick="removeFromCart('${item.id}','${screenId}')">✕</button></td></tr>`;
   }).join('');
+  const descuentoPorcentaje=parseFloat(descuentoEl?.value||0);
+  const descuentoMonto=(subtotal*descuentoPorcentaje)/100;
+  const total=subtotal-descuentoMonto;
+  if(subtotalEl) subtotalEl.textContent='$'+subtotal.toLocaleString('es-MX',{minimumFractionDigits:2});
   if(totalEl) totalEl.textContent='$'+total.toLocaleString('es-MX',{minimumFractionDigits:2});
+}
+
+function actualizarTotalConDescuento(screenId){
+  renderCart(screenId);
+}
+
+function filtrarMaterialesVentas(){
+  const materialSelec=document.getElementById('filtro-material-ventas')?.value||'';
+  const prodSel=document.getElementById('prod-sel-ventas');
+  if(!prodSel) return;
+  Array.from(prodSel.options).forEach(opt=>{
+    if(opt.value==='') return;
+    const tipo=opt.dataset.tipo||'';
+    if(materialSelec==='' || tipo===materialSelec){
+      opt.style.display='';
+    } else {
+      opt.style.display='none';
+    }
+  });
 }
 
 function confirmarVenta(screenId){
   if(cart.length===0){showToast('Agrega productos primero','warn');return;}
-  const total=cart.reduce((s,c)=>s+c.price*c.cant,0);
+  const subtotal=cart.reduce((s,c)=>s+c.price*c.cant,0);
+  const descuentoEl=document.getElementById('cart-descuento-'+screenId);
+  const descuentoPorcentaje=parseFloat(descuentoEl?.value||0);
+  const descuentoMonto=(subtotal*descuentoPorcentaje)/100;
+  const total=subtotal-descuentoMonto;
   cart.length=0;
   renderCart(screenId);
   openModal('modal-venta-ok');
@@ -2378,7 +2479,101 @@ document.addEventListener('keydown',e=>{
   });
   document.body.style.overflow='';
   }
-});</script>
-<script src="public/js/crud-extra.js"></script>
+});
+
+// ── Función para generar respaldo ────────────────────────
+async function generarRespaldo() {
+  const btn = document.getElementById('btn-respaldo');
+  const btnText = document.getElementById('btn-text');
+  const btnLoading = document.getElementById('btn-loading');
+  
+  if (!btn || !btnText || !btnLoading) return;
+  
+  // Cambiar a estado de carga
+  btn.disabled = true;
+  btnText.style.display = 'none';
+  btnLoading.style.display = 'inline';
+  
+  try {
+    const response = await fetch('backup.php', {
+      method: 'POST',
+      credentials: 'same-origin'
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error en la respuesta del servidor');
+    }
+    
+    // Crear un blob con la respuesta y descargar
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'respaldo_hlazcano_' + new Date().toISOString().slice(0, 19).replace(/:/g, '-') + '.sql';
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    
+    showToast('✅ Respaldo generado y descargado exitosamente');
+    
+    // Recargar historial
+    cargarHistorialRespaldo();
+    
+  } catch (error) {
+    console.error('Error generando respaldo:', error);
+    showToast('❌ Error al generar el respaldo', 'warn');
+  } finally {
+    // Restaurar estado del botón
+    btn.disabled = false;
+    btnText.style.display = 'inline';
+    btnLoading.style.display = 'none';
+  }
+}
+
+// ── Cargar historial de respaldos ─────────────────────────
+async function cargarHistorialRespaldo() {
+  try {
+    const response = await fetch('index.php?action=respaldo_historial', {
+      credentials: 'same-origin'
+    });
+    const data = await response.json();
+    
+    if (data.ok) {
+      // Actualizar información del último respaldo
+      const ultimoInfo = document.getElementById('ultimo-respaldo-info');
+      if (ultimoInfo && data.ultimo) {
+        const fecha = new Date(data.ultimo.fecha_generacion);
+        ultimoInfo.innerHTML = `Último respaldo: <strong>${fecha.toLocaleDateString('es-ES')} ${fecha.toLocaleTimeString('es-ES')}</strong>`;
+      } else {
+        ultimoInfo.innerHTML = 'Último respaldo: <strong>Nunca</strong>';
+      }
+      
+      // Mostrar historial
+      const tbody = document.getElementById('tbody-historial');
+      if (tbody && data.historial) {
+        if (data.historial.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--hint);padding:20px">No hay respaldos registrados</td></tr>';
+        } else {
+          tbody.innerHTML = data.historial.map(log => {
+            const fecha = new Date(log.fecha_generacion);
+            const tamano = (log.tamano_bytes / 1024 / 1024).toFixed(2) + ' MB';
+            const estado = log.exito ? '<span class="badge badge-ok">✅ Exitoso</span>' : '<span class="badge badge-danger">❌ Fallido</span>';
+            return `<tr>
+              <td>${fecha.toLocaleDateString('es-ES')} ${fecha.toLocaleTimeString('es-ES')}</td>
+              <td>${log.nombre_usuario}</td>
+              <td>${log.nombre_archivo}</td>
+              <td>${tamano}</td>
+              <td>${estado}</td>
+            </tr>`;
+          }).join('');
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error cargando historial:', error);
+  }
+}</script>
+<script src="public/js/crud-extra.js?v=2"></script>
 </body>
 </html>
