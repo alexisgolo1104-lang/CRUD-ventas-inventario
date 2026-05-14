@@ -228,7 +228,8 @@ async function guardarProducto() {
     if (res && res.ok === true) {
       closeModal('modal-producto');
       showToast(`✅ ${res.msg || 'Producto guardado correctamente'}`);
-      setTimeout(() => cargarInventario(true), 1200);
+      cargarInventario(true);
+      cargarDatosVentas(true);
       return;
     }
 
@@ -579,44 +580,43 @@ async function cargarClientes() {
 // ── Cargar datos de Ventas (selects + historial) ──────────
 let _ventasDatosOk = false;
 
-async function cargarDatosVentas() {
+async function cargarDatosVentas(force = false) {
   // Cargar datos del formulario (clientes + productos)
-  if (!_ventasDatosOk) {
-    try {
-      const data = await apiGet('ventas_datos');
-      // Llenar select de clientes
-      const selCli = document.getElementById('venta-cliente');
-      if (selCli && data.clientes) {
-        selCli.innerHTML = '<option value="">Sin cliente (venta directa)</option>' +
-          data.clientes.map(cl =>
-            `<option value="${esc(cl.nombre)}" data-id="${cl.id_cliente}">${esc(cl.nombre)}</option>`
-          ).join('');
-      }
-      // Llenar select de productos
-      const selProd = document.getElementById('prod-sel-ventas');
-      if (selProd && data.productos) {
-        selProd.innerHTML = '<option value="">Seleccionar producto...</option>' +
-          data.productos.map(p => {
-            const bajo = parseFloat(p.stock_actual) <= parseFloat(p.stock_minimo);
-            const nombre = `${p.catalogo_nombre||''} ${p.presentacion||''}`.trim();
-            const unidad = p.unidad_codigo||'u';
-            const stock  = parseFloat(p.stock_actual).toFixed(2);
-            const precio = parseFloat(p.precio_venta||0).toFixed(2);
-            const tipo = p.tipo_hilo||'';
-            return `<option value="${p.id_producto}"
-              data-id="${p.id_producto}"
-              data-name="${esc(nombre)}"
-              data-price="${parseFloat(p.precio_venta||0)}"
-              data-stock="${parseFloat(p.stock_actual)}"
-              data-unidad="${esc(unidad)}"
-              data-tipo="${esc(tipo)}"
-              >${esc(nombre)} — Stock: ${stock} ${unidad}${bajo?' ⚠':''} — $${precio}/${unidad}</option>`;
-          }).join('');
-      }
-      _ventasDatosOk = true;
-    } catch(e) {
-      console.error('Error al cargar datos de ventas:', e);
+  if (_ventasDatosOk && !force) return;
+  try {
+    const data = await apiGet('ventas_datos');
+    // Llenar select de clientes
+    const selCli = document.getElementById('venta-cliente');
+    if (selCli && data.clientes) {
+      selCli.innerHTML = '<option value="">Sin cliente (venta directa)</option>' +
+        data.clientes.map(cl =>
+          `<option value="${esc(cl.nombre)}" data-id="${cl.id_cliente}">${esc(cl.nombre)}</option>`
+        ).join('');
     }
+    // Llenar select de productos
+    const selProd = document.getElementById('prod-sel-ventas');
+    if (selProd && data.productos) {
+      selProd.innerHTML = '<option value="">Seleccionar producto...</option>' +
+        data.productos.map(p => {
+          const bajo = parseFloat(p.stock_actual) <= parseFloat(p.stock_minimo);
+          const nombre = `${p.catalogo_nombre||''} ${p.presentacion||''}`.trim();
+          const unidad = p.unidad_codigo||'u';
+          const stock  = parseFloat(p.stock_actual).toFixed(2);
+          const precio = parseFloat(p.precio_venta||0).toFixed(2);
+          const tipo = p.tipo_hilo||'';
+          return `<option value="${p.id_producto}"
+            data-id="${p.id_producto}"
+            data-name="${esc(nombre)}"
+            data-price="${parseFloat(p.precio_venta||0)}"
+            data-stock="${parseFloat(p.stock_actual)}"
+            data-unidad="${esc(unidad)}"
+            data-tipo="${esc(tipo)}"
+            >${esc(nombre)} — Stock: ${stock} ${unidad}${bajo?' ⚠':''} — $${precio}/${unidad}</option>`;
+        }).join('');
+    }
+    _ventasDatosOk = true;
+  } catch(e) {
+    console.error('Error al cargar datos de ventas:', e);
   }
 
   // Cargar historial de ventas
@@ -628,7 +628,7 @@ async function cargarDatosVentas() {
       tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">No hay ventas registradas.</td></tr>';
       return;
     }
-    tbody.innerHTML = ventas.slice(0,20).map(v => {
+    tbody.innerHTML = ventas.slice(0,10).map(v => {
       const estado = v.estado || 'completada';
       const badge  = estado === 'completada' ? 'badge-ok' : 'badge-danger';
       const label  = estado === 'completada' ? '✅ OK' : '❌ ' + estado;

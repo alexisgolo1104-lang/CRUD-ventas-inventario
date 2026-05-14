@@ -646,6 +646,8 @@ async function registrarVentaFinal(){
       renderCart('ventas');
       updateTicketPreview();
     }
+    await cargarInventario(true);
+    await cargarDatosVentas(true);
     showToast('✅ Venta #'+folio+' registrada');
     document.getElementById('page-title').textContent='Confirmar venta';
     
