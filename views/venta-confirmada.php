@@ -19,7 +19,7 @@
       <div class="flex gap-8 mt-12">
         <button class="btn" onclick="go('ventas',null)">← Nueva venta</button>
         <button class="btn" onclick="go('inventario',null); setTimeout(() => { if (typeof cargarInventario === 'function') cargarInventario(true); }, 500);">📦 Ver inventario</button>
-        <button class="btn" onclick="showToast('Descargando ticket...')">⬇ Descargar ticket</button>
+        <button class="btn" onclick="descargarTicketPDF()">⬇ Descargar ticket</button>
         <button class="btn" onclick="showToast('Enviando por WhatsApp...')">📤 Enviar por WhatsApp</button>
         <button class="btn btn-primary" onclick="showToast('Imprimiendo...')">🖨 Imprimir</button>
       </div>
@@ -30,7 +30,7 @@
         — ticket —
       </div>
       <div class="flex gap-8 mt-12">
-        <button class="btn btn-sm" style="flex:1;justify-content:center" onclick="showToast('Descargando PDF...')">⬇ PDF</button>
+        <button class="btn btn-sm" style="flex:1;justify-content:center" onclick="descargarTicketPDF()">⬇ PDF</button>
         <button class="btn btn-sm" style="flex:1;justify-content:center" onclick="showToast('Imprimiendo...')">🖨 Imprimir</button>
       </div>
     </div>

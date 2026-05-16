@@ -173,7 +173,7 @@ tr:hover td{background:var(--surf2)}
 .alert-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 
 /* ── Login ───────────────────────────────────────────────── */
-.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;position:relative;background:linear-gradient(135deg,#080E1A 0%,#1B2435 50%,#C0392B 100%) center/cover no-repeat}.login-wrap::before{content:"";position:absolute;inset:0;background:rgba(8,12,25,.62);z-index:0}.login-wrap>*{position:relative;z-index:1}
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;position:relative;background:linear-gradient(180deg,rgba(8,12,25,.30),rgba(8,12,25,.70)),url("../img/hilos.jpeg") center/cover no-repeat}.login-wrap::before{content:"";position:absolute;inset:0;background:rgba(8,12,25,.42);z-index:0}.login-wrap>*{position:relative;z-index:1}
 .login-card{background:var(--surface);border-radius:var(--radius-xl);padding:36px;width:100%;max-width:400px;box-shadow:var(--shadow-lg)}
 .login-logo{text-align:center;margin-bottom:28px}
 .login-icon{width:58px;height:58px;background:#C0392B;border-radius:15px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',Arial,sans-serif;font-weight:800;font-size:22px;color:#fff;letter-spacing:-1px;box-shadow:0 6px 20px rgba(192,57,43,.55)}

@@ -228,7 +228,10 @@ async function guardarProducto() {
     if (res && res.ok === true) {
       closeModal('modal-producto');
       showToast(`✅ ${res.msg || 'Producto guardado correctamente'}`);
-      setTimeout(() => cargarInventario(true), 1200);
+      setTimeout(() => {
+        cargarInventario(true);
+        if (typeof cargarDashboard === 'function') cargarDashboard();
+      }, 1200);
       return;
     }
 
@@ -262,7 +265,10 @@ async function ejecutarEliminarProducto() {
     if (res.ok) {
       const row = document.querySelector(`#tbody-productos tr[data-id="${_eliminarId}"]`);
       if (row) row.remove();
-      setTimeout(() => cargarInventario(true), 800);
+      setTimeout(() => {
+        cargarInventario(true);
+        if (typeof cargarDashboard === 'function') cargarDashboard();
+      }, 800);
     }
   } catch(e) {
     showToast('❌ Error de conexión');
@@ -410,7 +416,11 @@ async function guardarCliente() {
     const res = await apiPost(action, fd);
     closeModal('modal-cliente');
     showToast(res.ok ? `✅ ${res.msg}` : `❌ ${res.msg}`);
-    if (res.ok) setTimeout(() => location.reload(), 1200);
+    if (res.ok) {
+      if (typeof cargarDashboard === 'function') cargarDashboard();
+      if (typeof cargarClientes === 'function') cargarClientes();
+      setTimeout(() => location.reload(), 1200);
+    }
   } catch(e) {
     showToast('❌ Error de conexión');
   }
@@ -665,6 +675,101 @@ function esc(str) {
     .replace(/"/g,'&quot;');
 }
 
+function renderDashboardBarChart(containerId, rows) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  if (!Array.isArray(rows) || rows.length === 0) {
+    container.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted)">Sin datos disponibles.</div>';
+    return;
+  }
+  const maxValue = Math.max(...rows.map(r => parseFloat(r.value) || 0), 1);
+  container.innerHTML = rows.map(row => {
+    const value = parseFloat(row.value) || 0;
+    const width = Math.max(6, Math.min(100, (value / maxValue) * 100));
+    return `
+      <div class="dash-bar-row">
+        <div class="dash-bar-label">${esc(row.label)}</div>
+        <div class="dash-bar-track"><div class="dash-bar-fill" style="width:${width}%"></div></div>
+        <div class="dash-bar-value">${esc(row.valueText || row.value)}</div>
+      </div>`;
+  }).join('');
+}
+
+function renderDashboardLineChart(containerId, rows) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  if (!Array.isArray(rows) || rows.length === 0) {
+    container.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted)">Sin datos disponibles.</div>';
+    return;
+  }
+  try {
+    const values = rows.map(r => parseFloat(r.value) || 0);
+    const maxValue = Math.max(...values, 1);
+    const points = rows.map((row, index) => {
+      const x = rows.length > 1 ? (index * 100 / (rows.length - 1)).toFixed(2) : 50;
+      const y = (100 - ((parseFloat(row.value) || 0) / maxValue) * 100).toFixed(2);
+      return `${x},${y}`;
+    }).join(' ');
+    container.innerHTML = `
+      <div class="dash-line-chart">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" class="dash-line-svg">
+          <polyline points="${points}" fill="none" stroke="#2563EB" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+          ${rows.map((row, index) => {
+            const x = rows.length > 1 ? (index * 100 / (rows.length - 1)).toFixed(2) : 50;
+            const y = (100 - ((parseFloat(row.value) || 0) / maxValue) * 100).toFixed(2);
+            return `<circle cx="${x}" cy="${y}" r="2.5" fill="#2563EB" />`;
+          }).join('')}
+        </svg>
+        <div class="dash-line-labels">
+          ${rows.map(row => `<div class="dash-line-label">${esc(row.label)}<span>${esc(row.valueText || row.value)}</span></div>`).join('')}
+        </div>
+      </div>`;
+  } catch(e) {
+    // Error handling for chart rendering
+    container.innerHTML = '<div style="color:var(--danger)">Error renderizando gráfico</div>';
+  }
+}
+
+function renderDashboardPieChart(containerId, rows) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  if (!Array.isArray(rows) || rows.length === 0) {
+    container.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted)">Sin datos disponibles.</div>';
+    return;
+  }
+  try {
+    const colors = ['#2563EB','#F59E0B','#10B981','#EF4444','#8B5CF6','#14B8A6','#F97316'];
+    const total = rows.reduce((sum, row) => sum + (parseFloat(row.value) || 0), 0);
+    if (total === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted)">Sin valores numéricos.</div>';
+      return;
+    }
+    let accumulated = 0;
+    const segments = rows.map((row, index) => {
+      const value = parseFloat(row.value) || 0;
+      const start = accumulated / total * 100;
+      const size = value / total * 100;
+      accumulated += value;
+      return `${colors[index % colors.length]} ${start}% ${start + size}%`;
+    }).join(', ');
+    container.innerHTML = `
+      <div class="dash-pie-wrap">
+        <div class="dash-pie-ring" style="background: conic-gradient(${segments});">
+          <div class="dash-pie-center">${total}</div>
+        </div>
+        <div class="dash-pie-legend">
+          ${rows.map((row, index) => {
+            const value = parseFloat(row.value) || 0;
+            return `<div class="dash-pie-item"><span class="dash-pie-key" style="background:${colors[index % colors.length]}"></span><span>${esc(row.label)}</span><strong>${esc(row.valueText || value)}</strong></div>`;
+          }).join('')}
+        </div>
+      </div>`;
+  } catch(e) {
+    // Error handling for chart rendering
+    container.innerHTML = '<div style="color:var(--danger)">Error renderizando gráfico</div>';
+  }
+}
+
 // ── Función para abrir modal de nuevo cliente limpio ──────
 function abrirModalNuevoCliente() {
   // Limpiar campos del modal
@@ -846,33 +951,54 @@ async function reactivarUsuario(id) {
 // ── Dashboard ─────────────────────────────────────────────
 async function cargarDashboard() {
   try {
-    // Ventas recientes
+    const hoy = new Date();
+    const thisMonth = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`;
+
     const ventas = await apiGet('ventas_listar');
     if (Array.isArray(ventas)) {
-      const tbody = document.getElementById('dash-tbody-ventas');
-      if (tbody) {
-        tbody.innerHTML = ventas.slice(0,5).map(v => `
-          <tr>
-            <td>${esc(v.folio||'#'+String(v.id_venta).padStart(4,'0'))}</td>
-            <td>${esc(v.cliente||'Directa')}</td>
-            <td><strong>$${parseFloat(v.total||0).toFixed(2)}</strong></td>
-            <td>S${v.id_tienda}</td>
-          </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted)">Sin ventas</td></tr>';
-      }
-      // Total del mes
-      const totalMes = ventas.reduce((s,v) => s + parseFloat(v.total||0), 0);
+      const ventasMes = ventas.filter(v => (v.fecha||'').startsWith(thisMonth));
+      const totalMes = ventasMes.reduce((s,v) => s + parseFloat(v.total||0), 0);
       const elMes = document.getElementById('dash-ventas-mes');
       if (elMes) elMes.textContent = '$' + totalMes.toLocaleString('es-MX',{minimumFractionDigits:2});
       const elVentas = document.getElementById('dash-ventas-delta');
-      if (elVentas) elVentas.textContent = `${ventas.length} venta${ventas.length!==1?'s':''}`;
+      if (elVentas) elVentas.textContent = `${ventasMes.length} venta${ventasMes.length!==1?'s':''} este mes`;
+
+      const last7 = Array.from({length:7}, (_,idx) => {
+        const d = new Date();
+        d.setDate(hoy.getDate() - (6 - idx));
+        const label = d.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit' });
+        return { key: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`, label };
+      });
+      const ventasPorDia = last7.map(day => ({
+        label: day.label,
+        value: ventas.filter(v => (v.fecha||'') === day.key).length,
+      }));
+      renderDashboardLineChart('dash-chart-ventas', ventasPorDia.map(item => ({
+        ...item,
+        valueText: `${item.value} venta${item.value!==1?'s':''}`,
+      })));
     }
-    // Clientes
+
     const clientes = await apiGet('clientes_listar');
     if (Array.isArray(clientes)) {
       const el = document.getElementById('dash-clientes');
       if (el) el.textContent = clientes.length;
+      const nuevosMes = clientes.filter(c => (c.creado_en||'').startsWith(thisMonth)).length;
+      const clientDelta = document.getElementById('dash-clientes-delta');
+      if (clientDelta) clientDelta.textContent = `+${nuevosMes} este mes`;
+      const tipos = clientes.reduce((acc, cliente) => {
+        const tipo = cliente.tipo_cliente || 'Otro';
+        acc[tipo] = (acc[tipo] || 0) + 1;
+        return acc;
+      }, {});
+      const tiposRows = Object.entries(tipos).sort((a,b) => b[1]-a[1]).map(([label, value]) => ({
+        label,
+        value,
+        valueText: `${value} cliente${value!==1?'s':''}`,
+      }));
+      renderDashboardPieChart('dash-chart-clientes', tiposRows);
     }
-    // Alertas de stock
+
     const alertas = await apiGet('inventario_alertas');
     if (Array.isArray(alertas)) {
       const el = document.getElementById('dash-alertas');
@@ -892,11 +1018,23 @@ async function cargarDashboard() {
       const delta = document.getElementById('dash-alertas-delta');
       if (delta) delta.textContent = `${alertas.length} activa${alertas.length!==1?'s':''}`;
     }
-    // Inventario count
+
     const inv = await apiGet('inventario_listar');
     if (Array.isArray(inv)) {
       const el = document.getElementById('dash-productos');
       if (el) el.textContent = inv.length;
+      const nuevosProds = inv.filter(p => (p.creado_en||'').startsWith(thisMonth)).length;
+      const prodDelta = document.getElementById('dash-prod-delta');
+      if (prodDelta) prodDelta.textContent = `+${nuevosProds} este mes`;
+      const stockRows = inv
+        .map(p => ({
+          label: p.catalogo_nombre || p.nombre || 'Producto',
+          value: parseFloat(p.stock_actual) || 0,
+          valueText: `${parseFloat(p.stock_actual).toFixed(2)} ${p.unidad_codigo || p.unidad || 'u'}`,
+        }))
+        .sort((a,b) => b.value - a.value)
+        .slice(0,6);
+      renderDashboardBarChart('dash-chart-inventario', stockRows);
     }
   } catch(e) {
     console.error('Error cargarDashboard:', e);

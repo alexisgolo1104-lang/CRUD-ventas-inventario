@@ -648,6 +648,7 @@ async function registrarVentaFinal(){
     }
     showToast('✅ Venta #'+folio+' registrada');
     document.getElementById('page-title').textContent='Confirmar venta';
+    if (typeof cargarDashboard === 'function') cargarDashboard();
     
     // Prevenir cualquier scroll automático
     preventAutoScroll();

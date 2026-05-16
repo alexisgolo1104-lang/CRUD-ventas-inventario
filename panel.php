@@ -173,6 +173,26 @@ tr:hover td{background:var(--surf2)}
 .bar-chart .bar:hover{opacity:.8}
 .bar-chart .bar.hi{background:#2563EB}
 
+.dash-bar-chart{display:flex;flex-direction:column;gap:12px}
+.dash-bar-row{display:grid;grid-template-columns:1.1fr 2fr auto;gap:10px;align-items:center}
+.dash-bar-label{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dash-bar-track{background:var(--surf2);border-radius:999px;height:10px;overflow:hidden}
+.dash-bar-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#2563EB,#60A5FA)}
+.dash-bar-value{font-size:12px;color:var(--text);white-space:nowrap}
+
+.dash-line-chart{display:flex;flex-direction:column;gap:12px}
+.dash-line-svg{width:100%;height:160px;overflow:visible}
+.dash-line-labels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.dash-line-label{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.dash-line-label span{font-weight:700;color:var(--text)}
+
+.dash-pie-wrap{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.dash-pie-ring{width:120px;height:120px;border-radius:50%;position:relative;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 12px rgba(255,255,255,0.75)}
+.dash-pie-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:14px;font-weight:700;color:var(--text);text-align:center}
+.dash-pie-legend{flex:1;min-width:180px;display:flex;flex-direction:column;gap:8px}
+.dash-pie-item{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted)}
+.dash-pie-key{width:12px;height:12px;border-radius:3px;display:inline-block;flex-shrink:0}
+
 /* ── Color Pill ──────────────────────────────────────────── */
 .color-pill{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border-radius:20px;font-size:11px;border:1px solid var(--border);background:var(--surface)}
 .color-swatch{width:10px;height:10px;border-radius:50%;flex-shrink:0}
@@ -185,7 +205,7 @@ tr:hover td{background:var(--surf2)}
 .alert-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 
 /* ── Login ───────────────────────────────────────────────── */
-.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;position:relative;background:linear-gradient(135deg,#080E1A 0%,#1B2435 50%,#C0392B 100%) center/cover no-repeat}.login-wrap::before{content:"";position:absolute;inset:0;background:rgba(8,12,25,.62);z-index:0}.login-wrap>*{position:relative;z-index:1}
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;position:relative;background:linear-gradient(180deg,rgba(8,12,25,.35),rgba(8,12,25,.75)),url("public/img/hilos.jpeg") center/cover no-repeat}.login-wrap::before{content:"";position:absolute;inset:0;background:rgba(8,12,25,.32);z-index:0}.login-wrap>*{position:relative;z-index:1}
 .login-card{background:var(--surface);border-radius:var(--radius-xl);padding:36px;width:100%;max-width:400px;box-shadow:var(--shadow-lg)}
 .login-logo{text-align:center;margin-bottom:28px}
 .login-icon{width:58px;height:58px;background:#C0392B;border-radius:15px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',Arial,sans-serif;font-weight:800;font-size:22px;color:#fff;letter-spacing:-1px;box-shadow:0 6px 20px rgba(192,57,43,.55)}
@@ -419,40 +439,35 @@ tr:hover td{background:var(--surf2)}
 
 <!-- ══ DASHBOARD ══════════════════════════════════════════ --><div id="screen-dashboard" class="screen active">
   <div class="grid-4">
-    <div class="stat-card"><div class="stat-num" style="color:#2563EB">$18,420</div><div class="stat-lbl">Ventas del mes</div><div class="stat-delta up">↑ 12% vs mes anterior</div></div>
-    <div class="stat-card"><div class="stat-num">347</div><div class="stat-lbl">Productos registrados</div><div class="stat-delta up">↑ 8 nuevos este mes</div></div>
-    <div class="stat-card"><div class="stat-num" style="color:var(--danger)">5</div><div class="stat-lbl">Alertas activas</div><div class="stat-delta dn">3 críticas · 2 mínimo</div></div>
-    <div class="stat-card"><div class="stat-num">84</div><div class="stat-lbl">Clientes registrados</div><div class="stat-delta up">↑ 6 este mes</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:#2563EB" id="dash-ventas-mes">$0</div><div class="stat-lbl">Ventas del mes</div><div class="stat-delta up" id="dash-ventas-delta">—</div></div>
+    <div class="stat-card"><div class="stat-num" id="dash-productos">0</div><div class="stat-lbl">Productos registrados</div><div class="stat-delta up" id="dash-prod-delta">—</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--danger)" id="dash-alertas">0</div><div class="stat-lbl">Alertas activas</div><div class="stat-delta dn" id="dash-alertas-delta">—</div></div>
+    <div class="stat-card"><div class="stat-num" id="dash-clientes">0</div><div class="stat-lbl">Clientes registrados</div><div class="stat-delta up" id="dash-clientes-delta">—</div></div>
   </div>
   <div class="grid-2">
     <div class="card">
-      <div class="card-title">Ventas por día — Marzo 2025<button class="btn btn-sm" onclick="go('reportes',null)">Ver reporte →</button></div>
-      <div class="bar-chart">
-        <div class="bar" style="height:55%"></div><div class="bar" style="height:72%"></div><div class="bar" style="height:48%"></div>
-        <div class="bar" style="height:85%"></div><div class="bar" style="height:63%"></div><div class="bar hi" style="height:91%"></div>
-        <div class="bar" style="height:70%"></div><div class="bar" style="height:58%"></div><div class="bar" style="height:77%"></div>
-        <div class="bar" style="height:82%"></div><div class="bar" style="height:66%"></div><div class="bar hi" style="height:45%"></div>
-        <div class="bar" style="height:90%"></div><div class="bar" style="height:75%"></div>
+      <div class="card-title">Ventas por día — últimos 7 días<button class="btn btn-sm" onclick="go('reportes',null)">Ver reporte →</button></div>
+      <div id="dash-chart-ventas" class="dash-bar-chart">
+        <div style="text-align:center;padding:16px;color:var(--muted)">Cargando...</div>
       </div>
-      <div class="flex justify-between mt-8 text-sm text-muted"><span>S1: $11,240</span><span>S2: $7,180</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Inventario: stock actual por producto</div>
+      <div id="dash-chart-inventario" class="dash-bar-chart">
+        <div style="text-align:center;padding:16px;color:var(--muted)">Cargando...</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Clientes por tipo</div>
+      <div id="dash-chart-clientes" class="dash-bar-chart">
+        <div style="text-align:center;padding:16px;color:var(--muted)">Cargando...</div>
+      </div>
     </div>
     <div class="card">
       <div class="card-title">Productos con alerta<button class="btn btn-sm" onclick="go('alertas',null)">Ver alertas →</button></div>
-      <div class="alert-item danger"><div class="alert-dot" style="background:var(--danger)"></div><div style="flex:1"><div class="font-bold text-sm">Hilo Nylon Negro 1kg</div><div class="text-sm text-muted">Stock: 2 kg · Mín: 5 kg · S2</div></div><button class="btn btn-sm" onclick="go('compras',null)">🛒 Comprar</button></div>
-      <div class="alert-item danger"><div class="alert-dot" style="background:var(--danger)"></div><div style="flex:1"><div class="font-bold text-sm">Hilo Elastano Café 50g</div><div class="text-sm text-muted">Stock: 0 kg · Sin stock · S1</div></div><button class="btn btn-sm" onclick="go('compras',null)">🛒 Comprar</button></div>
-      <div class="alert-item warn"><div class="alert-dot" style="background:var(--warn)"></div><div style="flex:1"><div class="font-bold text-sm">Hilo Algodón Rojo 250g</div><div class="text-sm text-muted">Stock: 4 kg · Mín: 5 kg · S1</div></div><button class="btn btn-sm">Ver</button></div>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-title">Últimos movimientos</div>
-    <div class="table-wrap">
-      <table><thead><tr><th>Fecha</th><th>Tipo</th><th>Producto</th><th>Cantidad</th><th>Tienda</th><th>Usuario</th><th>Estado</th></tr></thead>
-      <tbody>
-        <tr><td>14/03/2025</td><td><span class="badge badge-ok">Venta</span></td><td>Hilo Acrílico Blanco 500g</td><td>3 kg</td><td>Sucursal 1</td><td>Ana R.</td><td><span class="badge badge-ok">OK</span></td></tr>
-        <tr><td>14/03/2025</td><td><span class="badge badge-info">Compra</span></td><td>Hilo Nylon Negro 1kg</td><td>20 kg</td><td>Sucursal 2</td><td>Carlos M.</td><td><span class="badge badge-ok">OK</span></td></tr>
-        <tr><td>13/03/2025</td><td><span class="badge badge-warn">Ajuste</span></td><td>Hilo Algodón Rojo 250g</td><td>−1 kg</td><td>Sucursal 1</td><td>Admin</td><td><span class="badge badge-warn">Ajuste</span></td></tr>
-        <tr><td>13/03/2025</td><td><span class="badge badge-ok">Venta</span></td><td>Hilo Poliéster Azul 500g</td><td>5 kg</td><td>Sucursal 1</td><td>Ana R.</td><td><span class="badge badge-ok">OK</span></td></tr>
-      </tbody></table>
+      <div id="dash-alertas-lista">
+        <div style="text-align:center;padding:16px;color:var(--muted)">Cargando...</div>
+      </div>
     </div>
   </div>
 </div>
@@ -1346,12 +1361,14 @@ tr:hover td{background:var(--surf2)}
   <div class="card">
     <div class="card-title">Generar respaldo</div>
     <div class="mb-16">
-      <p class="text-muted mb-12">El respaldo incluye todas las tablas de la base de datos: productos, ventas, clientes, usuarios, catálogos, etc. El archivo se descargará automáticamente en formato SQL.</p>
+      <p class="text-muted mb-12">El respaldo incluye todas las tablas de la base de datos: productos, ventas, clientes, usuarios, catálogos, etc. El archivo se descargará en formato ZIP (contiene el volcado SQL).</p>
       <div class="flex gap-12 items-center">
         <button class="btn btn-primary" onclick="generarRespaldo()" id="btn-respaldo">
-          <span id="btn-text">💾 Generar respaldo</span>
+          <span id="btn-text">💾 Exportar (ZIP)</span>
           <span id="btn-loading" style="display:none">⏳ Generando...</span>
         </button>
+        <button class="btn" id="btn-importar" onclick="document.getElementById('input-importar').click()">📤 Importar (ZIP)</button>
+        <input type="file" id="input-importar" accept=".zip" style="display:none" onchange="importarRespaldo(event)">
         <div class="text-sm text-muted">
           <div id="ultimo-respaldo-info">Último respaldo: <strong>Cargando...</strong></div>
           <div>Tamaño aproximado: <strong>~2MB</strong></div>
@@ -1364,9 +1381,9 @@ tr:hover td{background:var(--surf2)}
     <div class="section-title">Historial de respaldos</div>
     <div class="table-wrap" id="historial-respaldo">
       <table>
-        <thead><tr><th>Fecha</th><th>Usuario</th><th>Archivo</th><th>Tamaño</th><th>Estado</th></tr></thead>
+        <thead><tr><th>Fecha</th><th>Usuario</th><th>Archivo</th><th>Tamaño</th><th>Acción</th><th>Estado</th></tr></thead>
         <tbody id="tbody-historial">
-          <tr><td colspan="5" style="text-align:center;color:var(--hint);padding:20px">Cargando historial...</td></tr>
+          <tr><td colspan="6" style="text-align:center;color:var(--hint);padding:20px">Cargando historial...</td></tr>
         </tbody>
       </table>
     </div>
@@ -1914,10 +1931,12 @@ function loginSuccess(data){
     clearScreens();
     document.getElementById('screen-dashboard').classList.add('active');
     document.getElementById('page-title').textContent = 'Dashboard';
+    if (typeof cargarDashboard === 'function') cargarDashboard();
   } else {
     clearScreens();
     document.getElementById('screen-emp-dashboard').classList.add('active');
     document.getElementById('page-title').textContent = 'Mi espacio de trabajo';
+    if (typeof cargarEmpDashboard === 'function') cargarEmpDashboard();
   }
   document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
   const firstNav = document.querySelector('#' + (isAdmin ? 'admin' : 'emp') + '-nav .sb-item:not(.locked)');
@@ -2069,6 +2088,8 @@ function go(name,navEl){
   window.scrollTo(0,0);
   document.getElementById('page-title').textContent=pages[name]||name;
   // ── Lazy-load datos de la BD al navegar ──────────────────
+  if(name==='dashboard')    { if(typeof cargarDashboard === 'function') cargarDashboard(); }
+  if(name==='emp-dashboard'){ if(typeof cargarEmpDashboard === 'function') cargarEmpDashboard(); }
   if(name==='clientes')     cargarClientes();
   if(name==='ventas')       cargarDatosVentas();
   if(name==='inventario')   cargarInventario();
@@ -2637,6 +2658,15 @@ function setQuickColor(hex,nombre){
 // Add venta-confirmada to pages map
 pages['venta-confirmada']='Confirmar venta';
 
+document.addEventListener('DOMContentLoaded', () => {
+  if (document.getElementById('screen-dashboard')?.classList.contains('active')) {
+    if (typeof cargarDashboard === 'function') cargarDashboard();
+  }
+  if (document.getElementById('screen-emp-dashboard')?.classList.contains('active')) {
+    if (typeof cargarEmpDashboard === 'function') cargarEmpDashboard();
+  }
+});
+
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
     document.querySelectorAll('.modal-overlay.open').forEach(m=>{
@@ -2660,7 +2690,7 @@ async function generarRespaldo() {
   btnLoading.style.display = 'inline';
   
   try {
-    const response = await fetch('backup.php', {
+    const response = await fetch('backup.php?action=export', {
       method: 'POST',
       credentials: 'same-origin'
     });
@@ -2674,7 +2704,7 @@ async function generarRespaldo() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'respaldo_hlazcano_' + new Date().toISOString().slice(0, 19).replace(/:/g, '-') + '.sql';
+    a.download = 'respaldo_hlazcano_' + new Date().toISOString().slice(0, 19).replace(/:/g, '-') + '.zip';
     document.body.appendChild(a);
     a.click();
     window.URL.revokeObjectURL(url);
@@ -2718,17 +2748,20 @@ async function cargarHistorialRespaldo() {
       const tbody = document.getElementById('tbody-historial');
       if (tbody && data.historial) {
         if (data.historial.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--hint);padding:20px">No hay respaldos registrados</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--hint);padding:20px">No hay respaldos registrados</td></tr>';
         } else {
           tbody.innerHTML = data.historial.map(log => {
             const fecha = new Date(log.fecha_generacion);
             const tamano = (log.tamano_bytes / 1024 / 1024).toFixed(2) + ' MB';
             const estado = log.exito ? '<span class="badge badge-ok">✅ Exitoso</span>' : '<span class="badge badge-danger">❌ Fallido</span>';
+            const notas = (log.notas || '').toLowerCase();
+            const accion = /import/.test(notas) ? 'Importar' : 'Exportar';
             return `<tr>
               <td>${fecha.toLocaleDateString('es-ES')} ${fecha.toLocaleTimeString('es-ES')}</td>
               <td>${log.nombre_usuario}</td>
               <td>${log.nombre_archivo}</td>
               <td>${tamano}</td>
+              <td>${accion}</td>
               <td>${estado}</td>
             </tr>`;
           }).join('');
@@ -2738,7 +2771,72 @@ async function cargarHistorialRespaldo() {
   } catch (error) {
     console.error('Error cargando historial:', error);
   }
-}</script>
+}
+
+async function importarRespaldo(e) {
+  const file = e?.target?.files?.[0];
+  if (!file) return;
+  const btn = document.getElementById('btn-importar');
+  if (btn) btn.disabled = true;
+  try {
+    const fd = new FormData();
+    fd.append('backup_file', file);
+    const resp = await fetch('backup.php?action=import', {
+      method: 'POST',
+      body: fd,
+      credentials: 'same-origin'
+    });
+    const json = await resp.json().catch(()=>null);
+    if (resp.ok) {
+      showToast('✅ Respaldo importado correctamente');
+      cargarHistorialRespaldo();
+    } else {
+      const msg = json?.message || 'Error al importar respaldo';
+      showToast('❌ ' + msg, 'warn');
+    }
+  } catch(err) {
+    console.error('Error importando respaldo:', err);
+    showToast('❌ Error al importar respaldo', 'warn');
+  } finally {
+    if (btn) btn.disabled = false;
+    const inp = document.getElementById('input-importar'); if (inp) inp.value = '';
+  }
+}
+
+function descargarTicketPDF() {
+  showToast('Descargando PDF...', '');
+  const ticket = document.querySelector('#screen-venta-confirmada .ticket-side') || document.getElementById('ticket-preview');
+  if (!ticket) {
+    showToast('Ticket no disponible', 'warn');
+    return;
+  }
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    showToast('No se pudo generar el PDF: librería faltante', 'warn');
+    return;
+  }
+  const doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a6' });
+  const text = ticket.innerText.trim();
+  const lines = text.split(/\r?\n/).map(line => line.trim()).filter(line => line.length > 0);
+  const margin = 20;
+  let y = margin;
+  const lineHeight = 12;
+  const maxWidth = 220;
+  lines.forEach(line => {
+    const wrapped = doc.splitTextToSize(line, maxWidth);
+    wrapped.forEach(part => {
+      if (y > 780) {
+        doc.addPage();
+        y = margin;
+      }
+      doc.text(part, margin, y);
+      y += lineHeight;
+    });
+  });
+  const filename = 'ticket_' + new Date().toISOString().slice(0, 19).replace(/:/g, '-') + '.pdf';
+  doc.save(filename);
+}
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-r1QP0qIBVyXkFvP72+q3K88YcfFB4q+/RluGeh9Smh4si3DGlr1YzYcYQf4u8Q6I56XzAN8ZeJS0COYkK+Cd7A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="public/js/crud-extra.js?v=2"></script>
 </body>
 </html>
