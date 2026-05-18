@@ -234,6 +234,12 @@ switch ($action) {
         echo json_encode(['ok' => $ok]);
         exit;
 
+    // ── PDF - Ticket de ventas y reportes ──────────────────
+    case 'pdf_ticket':
+        require_once 'controllers/PdfController.php';
+        (new PdfController(Database::getInstance()->getConnection()))->procesar();
+        break;
+
     // ── Vista principal (SPA) ─────────────────────────────
     default:
         include 'panel.php';

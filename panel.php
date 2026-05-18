@@ -945,7 +945,7 @@ tr:hover td{background:var(--surf2)}
     <div class="form-group"><label class="form-label">Agrupación</label><select class="form-control"><option>Por día</option><option>Por semana</option><option>Por mes</option><option>Por tipo de hilo</option><option>Por empleado</option></select></div>
     <div class="form-group" style="align-self:flex-end;gap:6px;display:flex">
       <button class="btn btn-primary">Ver reporte</button>
-      <button class="btn" onclick="showToast('Generando PDF...')">⬇ PDF</button>
+      <button class="btn" onclick="window.print()">⬇ PDF</button>
       <button class="btn" onclick="showToast('Generando Excel...')">⬇ Excel</button>
     </div>
   </div>
@@ -1651,9 +1651,9 @@ tr:hover td{background:var(--surf2)}
       </div>
       <div class="flex gap-8 mt-12">
         <button class="btn" onclick="go('ventas',null)">← Nueva venta</button>
-        <button class="btn" onclick="showToast('Descargando ticket...')">⬇ Descargar ticket</button>
+        <button class="btn" onclick="descargarTicketPDF()">⬇ Descargar ticket</button>
         <button class="btn" onclick="showToast('Enviando por WhatsApp...')">📤 Enviar por WhatsApp</button>
-        <button class="btn btn-primary" onclick="showToast('Imprimiendo...')">🖨 Imprimir</button>
+        <button class="btn btn-primary" onclick="imprimirSoloTicket()">🖨 Imprimir</button>
       </div>
     </div>
     <div class="card" style="background:var(--surf2)">
@@ -1662,8 +1662,8 @@ tr:hover td{background:var(--surf2)}
         — ticket —
       </div>
       <div class="flex gap-8 mt-12">
-        <button class="btn btn-sm" style="flex:1;justify-content:center" onclick="showToast('Descargando PDF...')">⬇ PDF</button>
-        <button class="btn btn-sm" style="flex:1;justify-content:center" onclick="showToast('Imprimiendo...')">🖨 Imprimir</button>
+        <button class="btn btn-sm" style="flex:1;justify-content:center" onclick="descargarTicketPDF()">⬇ PDF</button>
+        <button class="btn btn-sm" style="flex:1;justify-content:center" onclick="imprimirSoloTicket()">🖨 Imprimir</button>
       </div>
     </div>
   </div>
@@ -2212,7 +2212,8 @@ function confirmarAtender(){
           const labels={'compra':'Compra realizada','ajuste':'Stock mínimo ajustado','discontinue':'Producto descontinuado','precio':'Precio reducido','otro':'Acción manual'};
           d.className='alert-item done';
           d.style.cssText='background:var(--accentbg);border-color:var(--accent2);animation:fadeUp .3s ease';
-          d.innerHTML=`<div class="alert-dot" style="background:var(--accent)"></div><div style="flex:1"><div class="font-bold">${document.getElementById('alert-modal-name').textContent}</div><div class="text-sm text-muted">Atendida ahora · Por: Hernán M.</div><div class="text-sm" style="color:var(--accent)">Acción: ${labels[accion]||accion}</div></div><span class="badge badge-ok">✅ Atendida</span>`;
+          const atendBy = (document.getElementById('tu-name')?.textContent || document.getElementById('sb-name')?.textContent || 'Usuario').trim();
+          d.innerHTML=`<div class="alert-dot" style="background:var(--accent)"></div><div style="flex:1"><div class="font-bold">${document.getElementById('alert-modal-name').textContent}</div><div class="text-sm text-muted">Atendida ahora · Por: ${atendBy}</div><div class="text-sm" style="color:var(--accent)">Acción: ${labels[accion]||accion}</div></div><span class="badge badge-ok">✅ Atendida</span>`;
           list.prepend(d);
         }
         showToast('✅ Alerta marcada como atendida');
@@ -2397,6 +2398,9 @@ function renderCart(screenId){
 
 function actualizarTotalConDescuento(screenId){
   renderCart(screenId);
+  if(screenId==='ventas' && typeof updateTicketPreview === 'function'){
+    updateTicketPreview();
+  }
 }
 
 function filtrarMaterialesVentas(){
@@ -2469,7 +2473,8 @@ function updateTicketPreview(){
   const tName=tienda?tienda.value:'Sucursal 1 — Santa María Texmelucan';
   const cName=cliente?cliente.options[cliente.selectedIndex].text:'—';
   const isEmp=(document.getElementById('emp-nav')&&document.getElementById('emp-nav').style.display!=='none');
-  const atendio=isEmp?'Ana Ramírez':'Hernán Meneses';
+  // Use the displayed user name if available (tu-name or sb-name), fallback to role-based label
+  const atendio = (document.getElementById('tu-name')?.textContent || document.getElementById('sb-name')?.textContent || (isEmp ? 'Empleado' : 'Usuario')).trim();
   
   const now=new Date();
   const fecha=`${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
@@ -2485,7 +2490,11 @@ function updateTicketPreview(){
     </div>
     <div style="font-size:10px;color:#888;margin-bottom:4px">${item.cant} kg × $${item.price.toFixed(2)}</div>`).join('');
   
-  const total=cart.reduce((s,c)=>s+c.price*c.cant,0);
+  const subtotal=cart.reduce((s,c)=>s+c.price*c.cant,0);
+  const descuentoEl=document.getElementById('cart-descuento-ventas');
+  const descuentoPorcentaje=parseFloat(descuentoEl?.value||0);
+  const descuentoMonto=(subtotal*descuentoPorcentaje)/100;
+  const total=subtotal-descuentoMonto;
   const folioNum=String(43+Math.floor(Math.random()*3)).padStart(4,'0');
   
   tp.innerHTML=`
@@ -2505,7 +2514,8 @@ function updateTicketPreview(){
     </div>
     ${cart.length>0?`
     <div style="border-top:1px dashed #ccc;margin-top:8px;padding-top:8px">
-      <div style="display:flex;justify-content:space-between;font-size:11px;color:#888;margin-bottom:4px"><span>Subtotal</span><span>$${total.toFixed(2)}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#888;margin-bottom:4px"><span>Subtotal</span><span>$${subtotal.toFixed(2)}</span></div>
+      ${descuentoPorcentaje>0?`<div style="display:flex;justify-content:space-between;font-size:11px;color:#C0392B;margin-bottom:4px"><span>Descuento (${descuentoPorcentaje.toFixed(0)}%)</span><span>-$${descuentoMonto.toFixed(2)}</span></div>`:''}
       <div style="display:flex;justify-content:space-between;font-weight:700;font-size:13px"><span>TOTAL</span><span>$${total.toLocaleString('es-MX',{minimumFractionDigits:2})}</span></div>
     </div>`:''}`;
 }
@@ -2514,6 +2524,7 @@ function registrarVentaFinal(){
   if(cart.length===0){showToast('Agrega productos primero','warn');return;}
   const tienda=document.getElementById('venta-tienda');
   const cliente=document.getElementById('venta-cliente');
+  const descuento=document.getElementById('cart-descuento-ventas');
   const notas=document.getElementById('venta-notas');
   const selectedCliente = cliente?.options[cliente.selectedIndex];
   const cId = selectedCliente?.dataset?.id || cliente?.value || '';
@@ -2524,11 +2535,15 @@ function registrarVentaFinal(){
     cantidad: item.cant,
     precio_unit: item.price,
   }));
-  const total = cart.reduce((s,c)=>s+c.price*c.cant,0);
+  const subtotal = cart.reduce((s,c)=>s+c.price*c.cant,0);
+  const descuentoPorcentaje = parseFloat(descuento?.value || 0);
+  const descuentoMonto = (subtotal * descuentoPorcentaje) / 100;
+  const total = subtotal - descuentoMonto;
 
   const fd = new FormData();
   fd.append('id_cliente', cId || '');
   fd.append('id_tienda', tienda?.value || '1');
+  fd.append('descuento', descuento?.value || 0);
   fd.append('notas', notas?.value || '');
   fd.append('items', JSON.stringify(items));
 
@@ -2544,11 +2559,24 @@ function registrarVentaFinal(){
     const sc=document.getElementById('screen-venta-confirmada');
     if(sc){
       sc.classList.add('active');
+      // Ensure the confirmation screen is scrolled into view (override any later scroll)
+      try{ sc.scrollIntoView(true); }catch(e){}
+      sc.dataset.idVenta = String(res.id_venta || '');
+      sc.dataset.folio = folio;
       sc.querySelector('.venta-folio').textContent='Venta registrada exitosamente — Folio #'+folio+' · $'+total.toLocaleString('es-MX',{minimumFractionDigits:2})+' · '+fecha;
       sc.querySelector('.venta-cliente-info').textContent='Cliente: '+cName+' · '+tName+' · '+fecha;
       const tbody=sc.querySelector('.venta-items-body');
       tbody.innerHTML=cart.map(item=>`<tr><td>${item.name}</td><td>${item.cant} kg</td><td>$${item.price.toFixed(2)}</td><td><strong>$${(item.price*item.cant).toFixed(2)}</strong></td><td>—</td></tr>`).join('');
-      sc.querySelector('.venta-subtotal').textContent='$'+total.toLocaleString('es-MX',{minimumFractionDigits:2});
+      sc.querySelector('.venta-subtotal').textContent='$'+subtotal.toLocaleString('es-MX',{minimumFractionDigits:2});
+      const descRow = sc.querySelector('.venta-desc-row');
+      if(descRow){
+        if(descuentoPorcentaje > 0){
+          descRow.style.display = 'flex';
+          descRow.querySelector('.venta-desc-val').textContent = '-$'+descuentoMonto.toLocaleString('es-MX',{minimumFractionDigits:2})+' ('+descuentoPorcentaje.toFixed(0)+'%)';
+        } else {
+          descRow.style.display = 'none';
+        }
+      }
       sc.querySelector('.venta-total-main').textContent='$'+total.toLocaleString('es-MX',{minimumFractionDigits:2});
       const ticketSide=sc.querySelector('.ticket-side');
       if(ticketSide){
@@ -2567,6 +2595,8 @@ function registrarVentaFinal(){
             ${cart.map(item=>`<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px"><span>${item.name.replace('Hilo ','')}</span><span>$${(item.price*item.cant).toFixed(2)}</span></div><div style="font-size:10px;color:#aaa;margin-bottom:5px">${item.cant} kg</div>`).join('')}
           </div>
           <div style="border-top:1px dashed #ccc;margin-top:8px;padding-top:8px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:#888;margin-bottom:4px"><span>Subtotal</span><span>$${subtotal.toLocaleString('es-MX',{minimumFractionDigits:2})}</span></div>
+            ${descuentoPorcentaje>0?`<div style="display:flex;justify-content:space-between;font-size:11px;color:#C0392B;margin-bottom:4px"><span>Descuento (${descuentoPorcentaje.toFixed(0)}%)</span><span>-$${descuentoMonto.toLocaleString('es-MX',{minimumFractionDigits:2})}</span></div>`:''}
             <div style="display:flex;justify-content:space-between;font-weight:700;font-size:14px"><span>TOTAL</span><span>$${total.toLocaleString('es-MX',{minimumFractionDigits:2})}</span></div>
           </div>`;
       }
@@ -2575,9 +2605,11 @@ function registrarVentaFinal(){
       updateTicketPreview();
     }
     document.getElementById('page-title').textContent='Confirmar venta';
-    const contentArea=document.querySelector('.content');
-    if(contentArea) contentArea.scrollTop=0;
-    window.scrollTo(0,0);
+    // Force scroll to top multiple times to counteract other scripts/layout shifts
+    const doScrollTop = ()=>{ const contentArea=document.querySelector('.content'); if(contentArea) contentArea.scrollTop=0; try{ window.scrollTo(0,0); }catch(e){} };
+    setTimeout(doScrollTop, 10);
+    setTimeout(doScrollTop, 80);
+    setTimeout(doScrollTop, 240);
   }).catch(err=>{
     console.error('Error registrar venta:', err);
     showToast('❌ Error al registrar venta.', 'warn');
@@ -2804,39 +2836,32 @@ async function importarRespaldo(e) {
 }
 
 function descargarTicketPDF() {
-  showToast('Descargando PDF...', '');
-  const ticket = document.querySelector('#screen-venta-confirmada .ticket-side') || document.getElementById('ticket-preview');
-  if (!ticket) {
-    showToast('Ticket no disponible', 'warn');
+  showToast('⏳ Descargando PDF...', '');
+
+  const screen = document.getElementById('screen-venta-confirmada');
+  const folio = screen?.dataset?.folio || null;
+  const idVenta = screen?.dataset?.idVenta || null;
+
+  const ticketId = idVenta || folio || (document.querySelector('#screen-venta-confirmada .venta-folio')?.textContent || '').match(/Folio\s*#?(\d+)/i)?.[1] || null;
+  if (!ticketId) {
+    showToast('❌ No se encontró el folio del ticket', 'warn');
     return;
   }
-  if (!window.jspdf || !window.jspdf.jsPDF) {
-    showToast('No se pudo generar el PDF: librería faltante', 'warn');
-    return;
+
+  const basePath = window.location.pathname.replace(/\/[^\/]*$/, '/');
+  const url = `${window.location.origin}${basePath}generar_pdf_venta.php?id=${encodeURIComponent(ticketId)}`;
+
+  const win = window.open('about:blank', '_blank');
+  if (win) {
+    win.location.href = url;
+    win.focus();
+  } else {
+    window.location.href = url;
   }
-  const doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a6' });
-  const text = ticket.innerText.trim();
-  const lines = text.split(/\r?\n/).map(line => line.trim()).filter(line => line.length > 0);
-  const margin = 20;
-  let y = margin;
-  const lineHeight = 12;
-  const maxWidth = 220;
-  lines.forEach(line => {
-    const wrapped = doc.splitTextToSize(line, maxWidth);
-    wrapped.forEach(part => {
-      if (y > 780) {
-        doc.addPage();
-        y = margin;
-      }
-      doc.text(part, margin, y);
-      y += lineHeight;
-    });
-  });
-  const filename = 'ticket_' + new Date().toISOString().slice(0, 19).replace(/:/g, '-') + '.pdf';
-  doc.save(filename);
 }
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-r1QP0qIBVyXkFvP72+q3K88YcfFB4q+/RluGeh9Smh4si3DGlr1YzYcYQf4u8Q6I56XzAN8ZeJS0COYkK+Cd7A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="public/js/crud-extra.js?v=2"></script>
+</script>
 </body>
 </html>

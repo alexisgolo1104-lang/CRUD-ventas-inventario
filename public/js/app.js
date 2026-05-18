@@ -64,6 +64,59 @@ function setRole(role,el){
     u.innerHTML='<option value="emp1">Ana Ramírez — Empleado S1</option><option value="emp2">Carlos Mendoza — Empleado S2</option>';
   }
 }
+      // Función para abrir el ticket PDF en nueva pestaña o descargar como fallback
+      function abrirTicketPDF(id) {
+        const sc = document.getElementById('screen-venta-confirmada');
+        const ticketId = id || sc?.dataset?.idVenta || sc?.dataset?.folio || (sc?.querySelector('.venta-folio')?.textContent || '').match(/#(\d+)/)?.[1];
+        if (!ticketId) {
+          showToast('❌ No se encontró el folio del ticket', 'warn');
+          return;
+        }
+
+        const basePath = window.location.pathname.replace(/\/[^\/]*$/, '/');
+        const url = `${window.location.origin}${basePath}generar_pdf_venta.php?id=${encodeURIComponent(ticketId)}`;
+
+        // Intentar abrir en nueva pestaña (más fiable si no hay bloqueador)
+        const win = window.open('about:blank', '_blank');
+        if (win) {
+          win.location.href = url;
+          try { win.focus(); } catch(e){}
+          return;
+        }
+
+        // Fallback: descargar el PDF mediante fetch y crear un blob
+        fetch(url, { credentials: 'same-origin' }).then(resp => {
+          if (!resp.ok) throw new Error('HTTP ' + resp.status);
+          return resp.blob();
+        }).then(blob => {
+          const blobUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = `ticket_${ticketId}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(blobUrl);
+        }).catch(err => {
+          console.error('abrirTicketPDF error:', err);
+          showToast('❌ No se pudo abrir el PDF (' + (err.message || '') + ')', 'warn');
+        });
+      }
+      
+        // Imprime solo el contenido del ticket (ticket-side)
+        function imprimirSoloTicket(){
+          const sc = document.getElementById('screen-venta-confirmada');
+          const ticketSide = sc?.querySelector('.ticket-side');
+          if (!ticketSide) { showToast('❌ No se encontró la vista del ticket','warn'); return; }
+          const win = window.open('', '_blank');
+          if (!win) { showToast('⚠️ El navegador bloqueó la apertura de ventana', 'warn'); return; }
+          const doc = win.document;
+          doc.open();
+          doc.write(`<!doctype html><html><head><meta charset="utf-8"><title>Ticket</title><style>body{font-family:Segoe UI,Arial,sans-serif;padding:20px;color:#111} .ticket-wrap{max-width:420px;margin:0 auto}</style></head><body><div class="ticket-wrap">${ticketSide.innerHTML}</div></body></html>`);
+          doc.close();
+          // Esperar un momento a que el contenido renderice
+          setTimeout(()=>{ try { win.focus(); win.print(); } catch(e){ console.error(e); } }, 300);
+        }
 
 async function doLogin(){
   // ── Establecer sesión PHP en el backend ──────────────────
@@ -307,7 +360,8 @@ function confirmarAtender(){
           const labels={'compra':'Compra realizada','ajuste':'Stock mínimo ajustado','discontinue':'Producto descontinuado','precio':'Precio reducido','otro':'Acción manual'};
           d.className='alert-item done';
           d.style.cssText='background:var(--accentbg);border-color:var(--accent2);animation:fadeUp .3s ease';
-          d.innerHTML=`<div class="alert-dot" style="background:var(--accent)"></div><div style="flex:1"><div class="font-bold">${document.getElementById('alert-modal-name').textContent}</div><div class="text-sm text-muted">Atendida ahora · Por: Hernán M.</div><div class="text-sm" style="color:var(--accent)">Acción: ${labels[accion]||accion}</div></div><span class="badge badge-ok">✅ Atendida</span>`;
+          const atendBy = (document.getElementById('tu-name')?.textContent || document.getElementById('sb-name')?.textContent || 'Usuario').trim();
+          d.innerHTML=`<div class="alert-dot" style="background:var(--accent)"></div><div style="flex:1"><div class="font-bold">${document.getElementById('alert-modal-name').textContent}</div><div class="text-sm text-muted">Atendida ahora · Por: ${atendBy}</div><div class="text-sm" style="color:var(--accent)">Acción: ${labels[accion]||accion}</div></div><span class="badge badge-ok">✅ Atendida</span>`;
           list.prepend(d);
         }
         showToast('✅ Alerta marcada como atendida');
@@ -515,7 +569,8 @@ function updateTicketPreview(){
   const tName=tienda?tienda.value:'Sucursal 1 — Santa María Texmelucan';
   const cName=cliente?cliente.options[cliente.selectedIndex].text:'—';
   const isEmp=(document.getElementById('emp-nav')&&document.getElementById('emp-nav').style.display!=='none');
-  const atendio=isEmp?'Ana Ramírez':'Hernán Meneses';
+  // Use the displayed user name if available (tu-name or sb-name), fallback to role-based label
+  const atendio = (document.getElementById('tu-name')?.textContent || document.getElementById('sb-name')?.textContent || (isEmp ? 'Empleado' : 'Usuario')).trim();
   
   const now=new Date();
   const fecha=`${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
@@ -531,7 +586,11 @@ function updateTicketPreview(){
     </div>
     <div style="font-size:10px;color:#888;margin-bottom:4px">${item.cant} kg × $${item.price.toFixed(2)}</div>`).join('');
   
-  const total=cart.reduce((s,c)=>s+c.price*c.cant,0);
+  const subtotal=cart.reduce((s,c)=>s+c.price*c.cant,0);
+  const descuentoEl=document.getElementById('cart-descuento-ventas');
+  const descuentoPorcentaje=parseFloat(descuentoEl?.value||0);
+  const descuentoMonto=(subtotal*descuentoPorcentaje)/100;
+  const total=subtotal-descuentoMonto;
   const folioNum=String(43+Math.floor(Math.random()*3)).padStart(4,'0');
   
   tp.innerHTML=`
@@ -551,7 +610,8 @@ function updateTicketPreview(){
     </div>
     ${cart.length>0?`
     <div style="border-top:1px dashed #ccc;margin-top:8px;padding-top:8px">
-      <div style="display:flex;justify-content:space-between;font-size:11px;color:#888;margin-bottom:4px"><span>Subtotal</span><span>$${total.toFixed(2)}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#888;margin-bottom:4px"><span>Subtotal</span><span>$${subtotal.toFixed(2)}</span></div>
+      ${descuentoPorcentaje>0?`<div style="display:flex;justify-content:space-between;font-size:11px;color:#888;margin-bottom:4px"><span>Descuento (${descuentoPorcentaje.toFixed(0)}%)</span><span>-$${descuentoMonto.toFixed(2)}</span></div>`:''}
       <div style="display:flex;justify-content:space-between;font-weight:700;font-size:13px"><span>TOTAL</span><span>$${total.toLocaleString('es-MX',{minimumFractionDigits:2})}</span></div>
     </div>`:''}`;
 }
@@ -564,7 +624,10 @@ async function registrarVentaFinal(){
   const notas=document.getElementById('venta-notas');
   const cName=clienteSel&&clienteSel.value?clienteSel.options[clienteSel.selectedIndex].text:'—';
   const cId=clienteSel?clienteSel.options[clienteSel.selectedIndex]?.dataset?.id||'':'' ;
-  const total=cart.reduce((s,c)=>s+c.price*c.cant,0);
+  const subtotal=cart.reduce((s,c)=>s+c.price*c.cant,0);
+  const descuentoPorcentaje=parseFloat(descuento?.value||0);
+  const descuentoMonto=(subtotal*descuentoPorcentaje)/100;
+  const total=subtotal-descuentoMonto;
 
   // Build items array for backend
   const items = cart.map(item=>({
@@ -604,6 +667,10 @@ async function registrarVentaFinal(){
       return;
     }
 
+    const descPct = parseFloat(descuento?.value || 0);
+    const subtotalNum = subtotal;
+    const descMonto = subtotalNum * (descPct / 100);
+    const totalFinal = subtotalNum - descMonto;
     const folio=String(data.id_venta||'???').padStart(4,'0');
     const tName=tienda?tienda.options[tienda.selectedIndex]?.text||'Sucursal 1':'Sucursal 1';
     const now=new Date();
@@ -614,15 +681,24 @@ async function registrarVentaFinal(){
     const sc=document.getElementById('screen-venta-confirmada');
     if(sc){
       sc.classList.add('active');
-      sc.querySelector('.venta-folio').textContent='Venta registrada exitosamente — Folio #'+folio+' · $'+total.toLocaleString('es-MX',{minimumFractionDigits:2})+' · '+fecha;
+      sc.querySelector('.venta-folio').textContent='Venta registrada exitosamente — Folio #'+folio+' · $'+totalFinal.toLocaleString('es-MX',{minimumFractionDigits:2})+' · '+fecha;
       sc.querySelector('.venta-cliente-info').textContent='Cliente: '+cName+' · '+tName+' · '+fecha;
+      const descRow = sc.querySelector('.venta-desc-row');
+      if(descRow){
+        if(descPct > 0){
+          descRow.style.display = 'flex';
+          descRow.querySelector('.venta-desc-val').textContent = '-$' + descMonto.toLocaleString('es-MX',{minimumFractionDigits:2}) + ' (' + descPct + '%)';
+        } else {
+          descRow.style.display = 'none';
+        }
+      }
       const tbody=sc.querySelector('.venta-items-body');
       tbody.innerHTML=cart.map(item=>`<tr>
         <td>${item.name}</td><td>${item.cant} ${item.unidad||'u'}</td><td>$${item.price.toFixed(2)}</td>
         <td><strong>$${(item.price*item.cant).toFixed(2)}</strong></td><td>—</td>
       </tr>`).join('');
-      sc.querySelector('.venta-subtotal').textContent='$'+total.toLocaleString('es-MX',{minimumFractionDigits:2});
-      sc.querySelector('.venta-total-main').textContent='$'+total.toLocaleString('es-MX',{minimumFractionDigits:2});
+      sc.querySelector('.venta-subtotal').textContent='$'+subtotalNum.toLocaleString('es-MX',{minimumFractionDigits:2});
+      sc.querySelector('.venta-total-main').textContent='$'+totalFinal.toLocaleString('es-MX',{minimumFractionDigits:2});
       const ticketSide=sc.querySelector('.ticket-side');
       if(ticketSide){
         ticketSide.innerHTML=`
@@ -639,12 +715,14 @@ async function registrarVentaFinal(){
             ${cart.map(item=>`<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px"><span>${item.name.replace('Hilo ','')}</span><span>$${(item.price*item.cant).toFixed(2)}</span></div><div style="font-size:10px;color:#aaa;margin-bottom:5px">${item.cant} ${item.unidad||'u'}</div>`).join('')}
           </div>
           <div style="border-top:1px dashed #ccc;margin-top:8px;padding-top:8px">
-            <div style="display:flex;justify-content:space-between;font-weight:700;font-size:14px"><span>TOTAL</span><span>$${total.toLocaleString('es-MX',{minimumFractionDigits:2})}</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:#888;margin-bottom:4px"><span>Subtotal</span><span>$${subtotalNum.toFixed(2)}</span></div>
+            ${descPct>0?`<div style="display:flex;justify-content:space-between;font-size:11px;color:#C0392B"><span>Descuento (${descPct}%)</span><span>-$${descMonto.toFixed(2)}</span></div>`:''}
+            <div style="display:flex;justify-content:space-between;font-weight:700;font-size:14px"><span>TOTAL</span><span>$${totalFinal.toLocaleString('es-MX',{minimumFractionDigits:2})}</span></div>
           </div>`;
       }
       cart.length=0;
       renderCart('ventas');
-      updateTicketPreview();
+      // No llamar updateTicketPreview() aquí — borra el ticket recién pintado
     }
     showToast('✅ Venta #'+folio+' registrada');
     document.getElementById('page-title').textContent='Confirmar venta';
