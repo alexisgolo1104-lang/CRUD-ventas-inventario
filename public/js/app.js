@@ -724,6 +724,8 @@ async function registrarVentaFinal(){
       renderCart('ventas');
       // No llamar updateTicketPreview() aquí — borra el ticket recién pintado
     }
+    await cargarInventario(true);
+    await cargarDatosVentas(true);
     showToast('✅ Venta #'+folio+' registrada');
     document.getElementById('page-title').textContent='Confirmar venta';
     if (typeof cargarDashboard === 'function') cargarDashboard();
