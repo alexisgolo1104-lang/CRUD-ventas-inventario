@@ -228,15 +228,9 @@ async function guardarProducto() {
     if (res && res.ok === true) {
       closeModal('modal-producto');
       showToast(`✅ ${res.msg || 'Producto guardado correctamente'}`);
-<<<<<<< HEAD
-      setTimeout(() => {
-        cargarInventario(true);
-        if (typeof cargarDashboard === 'function') cargarDashboard();
-      }, 1200);
-=======
       cargarInventario(true);
-      cargarDatosVentas(true);
->>>>>>> f9a5a8e7167f48083ef065b1b36f33ca77ed386c
+      if (typeof cargarDashboard === 'function') cargarDashboard();
+      if (typeof cargarDatosVentas === 'function') cargarDatosVentas(true);
       return;
     }
 
